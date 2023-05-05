@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,32 +9,44 @@ datasource db {
 }
 
 model User {
-  id       Int       @id @default(autoincrement())
+  user_id  String    @id @db.VarChar(30)
   email    String    @unique @db.VarChar(128)
   name     String
   avatar   String    @db.VarChar(225)
   password String    @db.VarChar(225)
-  role     Role      @default(USER)
+  role     Role      @default(ADMIN)
   status   Status    @default(PENDING)
   sessions Session[]
 
-  @@map("users")
+  @@map("tb_users")
 }
 
 model Session {
-  id         Int      @id @default(autoincrement())
-  user_id    Int      @unique
-  user       User     @relation(fields: [user_id], references: [id])
+  id         String   @id @default(uuid())
+  user_id    String   @unique @db.VarChar(30)
   user_agent String   @db.LongText
   valid      Boolean
   expired    DateTime
+  user       User     @relation(fields: [user_id], references: [user_id])
 
-  @@map("sessions")
+  @@map("tb_sessions")
+}
+
+/// @@Gen.model(hide: true)
+model AutoIncrement {
+  id      Int     @id @default(autoincrement())
+  tb_name String  @db.VarChar(255)
+  field   String? @unique @db.VarChar(20)
+  prefix  String? @db.VarChar(25)
+  value   BigInt? @default(1)
+
+  @@map("tb_autoincrement")
 }
 
 enum Role {
-  USER
   ADMIN
+  OPERATOR
+  OFFICER
 }
 
 enum Status {
