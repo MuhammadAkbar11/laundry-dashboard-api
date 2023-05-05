@@ -4,6 +4,7 @@ import fs from "fs";
 import os from "os";
 import { ModeTypes } from "../utils/types/types";
 import logger from "./logger.config";
+import { Role } from "@prisma/client";
 
 const appDirname = path.resolve();
 
@@ -102,26 +103,18 @@ export const HTTP_STATUS_CODE = {
   INTERNAL_SERVER: 500,
 };
 
-export const ROLES = {
-  // SUPER_ADMIN: "SUPER_ADMIN",
-  ADMIN: "ADMIN",
-  USER: "USER",
-};
+export const ROLES: Record<string, string> = Object.values(Role).reduce(
+  (acc, val) => {
+    acc[val] = val.toLowerCase().replace(/^\w/, c => c.toUpperCase());
+    return acc;
+  },
+  {} as Record<string, string>
+);
 
-export const ROLES_ARR = [
-  // {
-  //   value: "SUPER_ADMIN",
-  //   text: "Superadmin",
-  // },
-  {
-    value: "ADMIN",
-    text: "Admin",
-  },
-  {
-    value: "USER",
-    text: "USER",
-  },
-];
+export const ROLES_ARR = Object.values(Role).map(role => ({
+  value: role.toUpperCase(),
+  text: role.toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase()),
+}));
 
 export const USER_STATUS = {
   PENDING: "PENDING",
