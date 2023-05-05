@@ -1,5 +1,4 @@
 import express from "express";
-import chalk from "chalk";
 import { User } from "@prisma/client";
 import _ from "lodash";
 import JWT from "../helpers/jwt.helper";
@@ -11,7 +10,7 @@ import { ACCESS_TOKEN_MAX_AGE } from "../configs/vars.config";
 const authService = new AuthService();
 
 interface IUserReq extends Omit<User, "password"> {
-  session?: number;
+  session?: string;
 }
 
 declare global {
@@ -88,11 +87,11 @@ export async function deserializeUser(
 
         const result = JWT.verifyJWT((newAccessToken as string) || "");
         const user = await authService.getSessionUser(
-          result.decoded?.id as number
+          result.decoded?.user_id as string
         );
         req.user = {
           ...user,
-          session: result?.decoded?.session as number,
+          session: result?.decoded?.session as string,
         } as IUserReq;
         logger.info(
           "[SESSION] Expired access token & generated new access token"
@@ -127,7 +126,7 @@ export async function deserializeUser(
       } as IUserReq;
       logger.info(
         {
-          id: currentUser.id,
+          id: currentUser.user_id,
           email: currentUser.email,
           name: currentUser.name,
           session: validSessionWithAccessToken.id,
@@ -170,11 +169,11 @@ export async function deserializeUser(
         (newAccessToken as string) || ""
       );
       const user = await authService.getSessionUser(
-        newDecodedAccessToken?.id as number
+        newDecodedAccessToken?.user_id as string
       );
       req.user = {
         ...user,
-        session: newDecodedAccessToken?.session as number,
+        session: newDecodedAccessToken?.session as string,
       } as IUserReq;
       setNewAccessTokenCookie(req, res, newAccessToken as string);
       logger.info("[SESSION] Generated new access token");

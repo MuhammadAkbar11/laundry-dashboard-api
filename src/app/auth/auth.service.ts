@@ -15,7 +15,7 @@ import {
 import { dateUTC } from "../../configs/date.config";
 
 export interface IInputSession {
-  userId: number;
+  userId: string;
   userAgent: string;
   valid: boolean;
 }
@@ -26,7 +26,7 @@ class AuthService extends BaseService {
     super();
   }
 
-  public async signUpUser(input: Omit<User, "id">) {
+  public async signUpUser(input: Omit<User, "user_id">) {
     try {
       const existEmail = await this.prisma.user.findUnique({
         where: {
@@ -41,17 +41,26 @@ class AuthService extends BaseService {
         );
       }
 
-      const newUser = {
-        name: input.name,
-        email: input.email,
-        password: await hashPassword(input.password),
-        role: input.role,
-        status: input.status,
-        avatar: input.avatar,
-      } as User;
+      const user = await this.prisma.$transaction(async prismaTx => {
+        const userId = await this.generateIncField({
+          prismaTx: prismaTx,
+          tableName: "tb_users",
+          field: "user_id",
+        });
 
-      const user = await this.prisma.user.create({
-        data: newUser,
+        const newUser = {
+          user_id: userId as string,
+          name: input.name,
+          email: input.email,
+          password: await hashPassword(input.password),
+          role: input.role,
+          status: input.status,
+          avatar: input.avatar,
+        } as User;
+
+        return await prismaTx.user.create({
+          data: newUser,
+        });
       });
 
       return omit(user, "password");
@@ -101,7 +110,7 @@ class AuthService extends BaseService {
     }
   }
 
-  public async findUserSessions(userId: number, userAgent: string) {
+  public async findUserSessions(userId: string, userAgent: string) {
     try {
       return await this.prisma.session.findMany({
         where: {
@@ -117,7 +126,7 @@ class AuthService extends BaseService {
 
   public setSessionToken(
     res: express.Response,
-    { user, sessionId }: { user: Omit<User, "password">; sessionId: number }
+    { user, sessionId }: { user: Omit<User, "password">; sessionId: string }
   ): { accessToken: string; refreshToken: string } {
     const data = { ...user, session: sessionId };
     const accessToken = JWT.signJWT(
@@ -143,7 +152,8 @@ class AuthService extends BaseService {
     return { accessToken, refreshToken };
   }
 
-  public async findSessionById(sessionId: number) {
+  // findSessionById
+  public async findSessionById(sessionId: string) {
     try {
       return await this.prisma.session.findUnique({
         where: {
@@ -156,7 +166,7 @@ class AuthService extends BaseService {
     }
   }
 
-  public async findValidSessionById(sessionId: number) {
+  public async findValidSessionById(sessionId: string) {
     try {
       return await this.prisma.session.findFirst({
         where: {
@@ -171,7 +181,7 @@ class AuthService extends BaseService {
   }
 
   public async updateSessionStatusById(
-    sessionId: number,
+    sessionId: string,
     isValid: boolean = true
   ) {
     try {
@@ -189,9 +199,9 @@ class AuthService extends BaseService {
     }
   }
 
-  public async getSessionUser(userId: number) {
+  public async getSessionUser(userId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { user_id: userId },
     });
 
     if (!user) return null;
@@ -219,7 +229,7 @@ class AuthService extends BaseService {
 
     const user = await this.prisma.user.findUnique({
       where: {
-        id: session.user_id,
+        user_id: session.user_id,
       },
     });
 

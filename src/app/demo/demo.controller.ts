@@ -14,8 +14,7 @@ class DemoController extends BaseController {
     try {
       const connect = await prismaConnection();
       res.status(200).json({
-        message:
-          "Welcome to node rest auth built with express, typescript & pisma.io ",
+        message: "Welcome to Laundry App API",
         version: apiVersion(),
         DBConnectionStatus: connect,
       });

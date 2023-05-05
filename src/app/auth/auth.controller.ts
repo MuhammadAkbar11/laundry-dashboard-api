@@ -6,6 +6,7 @@ import { Role } from "@prisma/client";
 import {
   DEFAULT_USER_AVATAR,
   ENV_STATIC_FOLDER_PATH,
+  MODE,
 } from "../../configs/vars.config";
 import FileHelper from "../../helpers/file.helper";
 import { BaseController } from "../../core";
@@ -68,21 +69,21 @@ class AuthController extends BaseController {
       }
 
       const existSession = await this.service.findUserSessions(
-        user.id,
+        user.user_id,
         req.get("user-agent") as string
       );
 
       let session = null;
 
       if (existSession && existSession?.length !== 0) {
-        const sessionId = existSession[0].id as number;
+        const sessionId = existSession[0].id as string;
         this.logger.info(existSession, "[AUTH] Session is found");
         await this.service.updateSessionStatusById(sessionId, true);
         session = await this.service.findSessionById(sessionId);
       } else {
         this.logger.info("[AUTH] No found session and created new session ");
         session = await this.service.createSession({
-          userId: user.id,
+          userId: user.user_id,
           userAgent: req.get("user-agent") || "",
           valid: true,
         });
@@ -98,8 +99,8 @@ class AuthController extends BaseController {
         return res.status(200).json({
           message: "Sign in successfully",
           user: { ...user, session: sessionId },
-          // refreshToken,
-          // accessToken,
+          refreshToken: MODE === "development" ? refreshToken : null,
+          accessToken: MODE === "development" ? accessToken : null,
         });
       }
 
@@ -123,7 +124,7 @@ class AuthController extends BaseController {
         });
       }
 
-      const userId = user.id;
+      const userId = user.user_id;
 
       const session = await this.prisma.session.findFirst({
         where: { user_id: userId, valid: true },
