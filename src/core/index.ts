@@ -6,6 +6,7 @@ import BaseError from "../helpers/error.helper";
 import { getErrorSnippets } from "../utils/utils";
 import loggerConfig from "../configs/logger.config";
 import prisma from "../configs/prisma.config";
+import GenerateAutoIncField from "../helpers/autoincrement.helper";
 
 export abstract class BaseRouter<T> {
   protected readonly router: Router;
@@ -36,6 +37,7 @@ export abstract class BaseController {
   protected readonly prisma: PrismaClient;
   protected readonly methodStatus = HTTP_STATUS_CODE;
   protected readonly logger = loggerConfig;
+  protected readonly generateIncField = GenerateAutoIncField;
 
   constructor() {
     this.prisma = prisma;
@@ -58,9 +60,11 @@ export abstract class BaseController {
 }
 
 export class BaseService {
-  protected prisma: PrismaClient;
-  protected methodStatus = HTTP_STATUS_CODE;
-  protected logger = loggerConfig;
+  protected readonly prisma: PrismaClient;
+  protected readonly methodStatus = HTTP_STATUS_CODE;
+  protected readonly logger = loggerConfig;
+  protected readonly generateIncField = GenerateAutoIncField;
+
   constructor() {
     this.prisma = prisma;
   }
