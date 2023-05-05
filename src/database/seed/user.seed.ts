@@ -1,7 +1,7 @@
 import { faker } from "@faker-js/faker";
 import { User } from "@prisma/client";
 import { ROLES, USER_STATUS } from "../../configs/vars.config";
-import { hashPassword } from "../../utils/password.utils";
+import { hashPassword } from "../../utils/auth.utils";
 
 async function generateSeedUsers(numUsers: number) {
   const seedUsers: User[] = [];
