@@ -25,11 +25,17 @@ function getTokens(req: express.Request): {
   accessToken: string;
   refreshToken: string;
 } {
-  const accessToken =
-    req.cookies?.accessToken ||
-    _.get(req, "headers.authorization", "").replace(/^Bearer\s/, "");
-  const refreshToken =
-    req.cookies?.refreshToken || _.get(req, "headers.x-refresh");
+  let accessToken = req.cookies?.accessToken as string;
+  let refreshToken = req.cookies?.refreshToken as string;
+
+  if (req.get("user-agent")?.includes("Postman")) {
+    refreshToken = _.get(req, "headers.x-refresh") as string;
+    accessToken = _.get(req, "headers.authorization", "").replace(
+      /^Bearer\s/,
+      ""
+    );
+  }
+
   return { accessToken, refreshToken };
 }
 
@@ -42,7 +48,8 @@ function setNewAccessTokenCookie(
 
   res.cookie("accessToken", accessToken, {
     maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
-    httpOnly: true,
+    sameSite: "strict",
+    path: "/",
   });
   if (userAgent?.includes("Postman")) {
     logger.info("[SESSION] Set x-access-token for Postman");
@@ -56,7 +63,6 @@ export async function deserializeUser(
   next: express.NextFunction
 ) {
   try {
-    // logger.info(, "accessToken & refreshToken");
     const { accessToken, refreshToken } = getTokens(req);
 
     if (!accessToken) {
@@ -121,7 +127,7 @@ export async function deserializeUser(
       )) as User;
 
       req.user = {
-        ...currentUser,
+        ..._.omit(currentUser, "password"),
         session: validSessionWithAccessToken.id,
       } as IUserReq;
       logger.info(
@@ -171,8 +177,9 @@ export async function deserializeUser(
       const user = await authService.getSessionUser(
         newDecodedAccessToken?.user_id as string
       );
+
       req.user = {
-        ...user,
+        ..._.omit(user, "password"),
         session: newDecodedAccessToken?.session as string,
       } as IUserReq;
       setNewAccessTokenCookie(req, res, newAccessToken as string);
