@@ -3,6 +3,7 @@ import { BindAllMethods } from "../../utils/decorators.utils";
 import AuthService from "./auth.service";
 import { SignInUserPayload, SignUpUserPayload } from "./auth.schema";
 import { Role } from "@prisma/client";
+import type { Details as UserAgentDetails } from "express-useragent";
 import {
   DEFAULT_USER_AVATAR,
   ENV_STATIC_FOLDER_PATH,
@@ -10,6 +11,8 @@ import {
 } from "../../configs/vars.config";
 import FileHelper from "../../helpers/file.helper";
 import { BaseController } from "../../core";
+import { userAgentDeviceType } from "../../utils/utils";
+import _ from "lodash";
 
 @BindAllMethods
 class AuthController extends BaseController {
@@ -65,14 +68,20 @@ class AuthController extends BaseController {
         password: req.body.password,
       });
       if (!user) {
-        throw this.error("AUTH", 401, "Invalid Email or Password");
+        throw this.error("AUTH", 401, "Email atau Kata Sandi Tidak Valid");
       }
 
-      const existSession = await this.service.findUserSessions(
-        user.user_id,
-        req.get("user-agent") as string
-      );
+      const userId = user.user_id as string;
+      const userAgent = req.useragent as UserAgentDetails;
+      const ipAddress = req.clientIp as string;
+      const deviceType = userAgentDeviceType(userAgent);
 
+      const existSession = await this.service.findUserSessions({
+        userId,
+        userAgent: userAgent.source as string,
+        ipAddress,
+        deviceType,
+      });
       let session = null;
 
       if (existSession && existSession?.length !== 0) {
@@ -83,12 +92,14 @@ class AuthController extends BaseController {
       } else {
         this.logger.info("[AUTH] No found session and created new session ");
         session = await this.service.createSession({
-          userId: user.user_id,
-          userAgent: req.get("user-agent") || "",
+          userId: userId,
+          userAgent: userAgent.source,
           valid: true,
+          ipAddress,
+          deviceType,
         });
       }
-
+      this.logger.info(session, "[AUTH] session");
       if (session) {
         const sessionId = session.id;
         const { refreshToken, accessToken } = this.service.setSessionToken(
@@ -97,7 +108,7 @@ class AuthController extends BaseController {
         );
 
         return res.status(200).json({
-          message: "Sign in successfully",
+          message: "Berhasi login dengan sukses",
           user: { ...user, session: sessionId },
           refreshToken: MODE === "development" ? refreshToken : null,
           accessToken: MODE === "development" ? accessToken : null,
@@ -105,7 +116,7 @@ class AuthController extends BaseController {
       }
 
       return res.status(200).json({
-        message: "Sign in failed",
+        message: "Login gagal",
         accessToken: null,
         refreshToken: null,
       });
@@ -136,9 +147,11 @@ class AuthController extends BaseController {
         });
       }
 
+      // const user = await this.prisma.user.findFirst({where: {user_id: session.user_id}})
+
       return res.json({
         message: "Success to get user session",
-        session,
+        session: user,
       });
     } catch (error: any) {
       this.nextError(next, error);

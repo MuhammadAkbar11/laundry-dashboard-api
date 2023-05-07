@@ -17,6 +17,8 @@ import { dateUTC } from "../../configs/date.config";
 export interface IInputSession {
   userId: string;
   userAgent: string;
+  ipAddress: string;
+  deviceType: string;
   valid: boolean;
 }
 
@@ -26,7 +28,9 @@ class AuthService extends BaseService {
     super();
   }
 
-  public async signUpUser(input: Omit<User, "user_id">) {
+  public async signUpUser(
+    input: Omit<User, "user_id" | "created_at" | "updated_at">
+  ) {
     try {
       const existEmail = await this.prisma.user.findUnique({
         where: {
@@ -37,7 +41,7 @@ class AuthService extends BaseService {
         throw this.error(
           "DUPLICATE_ENTRY_ERR",
           409,
-          `Email ${input.email} already exists`
+          `Email ${input.email} telah terdaftar`
         );
       }
 
@@ -94,13 +98,16 @@ class AuthService extends BaseService {
     }
   }
 
-  public async createSession({ userId, userAgent, valid }: IInputSession) {
+  public async createSession(input: IInputSession) {
+    const { userId, userAgent, valid, ipAddress, deviceType } = input;
     try {
       return await this.prisma.session.create({
         data: {
           user_id: userId,
           user_agent: userAgent,
           valid: valid,
+          ip_address: ipAddress,
+          device_type: deviceType,
           expired: dateUTC().day(7).toISOString(),
         },
       });
@@ -110,12 +117,21 @@ class AuthService extends BaseService {
     }
   }
 
-  public async findUserSessions(userId: string, userAgent: string) {
+  public async findUserSessions({
+    userId,
+    userAgent,
+    ipAddress,
+    deviceType,
+    valid,
+  }: { valid?: boolean } & Omit<IInputSession, "valid">) {
     try {
       return await this.prisma.session.findMany({
         where: {
           user_id: userId,
           user_agent: userAgent,
+          ip_address: ipAddress,
+          device_type: deviceType,
+          valid: valid,
         },
       });
     } catch (error) {
@@ -141,11 +157,15 @@ class AuthService extends BaseService {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
+      sameSite: "strict",
+      path: "/",
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
     res.cookie("accessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
+      sameSite: "strict",
+      path: "/",
       httpOnly: true,
     });
 
