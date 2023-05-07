@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { ROOT_FOLDER } from "../configs/vars.config";
 import logger from "../configs/logger.config";
+import type { Details as UserAgentDetails } from "express-useragent";
 
 export function printDivider(): string {
   const width = (
@@ -95,4 +96,12 @@ export function objHasKey<O>(
 
 export function isObjectEmpty(obj: Record<string, unknown>): boolean {
   return obj ? Object.keys(obj).length === 0 : false;
+}
+
+export function userAgentDeviceType(userAgent: UserAgentDetails) {
+  return userAgent?.isMobile
+    ? "mobile"
+    : userAgent?.isTablet
+    ? "tablet"
+    : "desktop";
 }
