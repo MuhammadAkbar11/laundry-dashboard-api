@@ -9,26 +9,33 @@ datasource db {
 }
 
 model User {
-  user_id  String    @id @db.VarChar(30)
-  email    String    @unique @db.VarChar(128)
-  name     String
-  avatar   String    @db.VarChar(225)
-  password String    @db.VarChar(225)
-  role     Role      @default(ADMIN)
-  status   Status    @default(PENDING)
-  sessions Session[]
+  user_id    String    @id @db.VarChar(30)
+  email      String    @unique @db.VarChar(128)
+  name       String
+  avatar     String    @db.VarChar(225)
+  password   String    @db.VarChar(225)
+  role       Role      @default(ADMIN)
+  status     Status    @default(PENDING)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  sessions   Session[]
 
   @@map("tb_users")
 }
 
 model Session {
-  id         String   @id @default(uuid())
-  user_id    String   @unique @db.VarChar(30)
-  user_agent String   @db.LongText
-  valid      Boolean
-  expired    DateTime
-  user       User     @relation(fields: [user_id], references: [user_id])
+  id          String   @id @default(uuid())
+  user_id     String   @db.VarChar(30)
+  user_agent  String   @db.LongText
+  ip_address  String   @db.VarChar(128)
+  device_type String   @db.VarChar(35)
+  valid       Boolean
+  expired     DateTime
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  user        User     @relation(fields: [user_id], references: [user_id])
 
+  @@index([user_id])
   @@map("tb_sessions")
 }
 
