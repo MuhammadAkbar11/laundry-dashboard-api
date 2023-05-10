@@ -1,11 +1,11 @@
 import express from "express";
-import { User } from "@prisma/client";
+import { Session, User } from "@prisma/client";
 import { omit, get } from "lodash";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseService } from "../../core";
 import { comparePassword, hashPassword } from "../../utils/auth.utils";
 import JWT from "../../helpers/jwt.helper";
-import prismaCfg from "../../configs/prisma.config";
+
 import {
   ACCESS_TOKEN_MAX_AGE,
   ACCESS_TOKEN_TTL,
@@ -14,13 +14,16 @@ import {
 } from "../../configs/vars.config";
 import { dateUTC } from "../../configs/date.config";
 
-export interface IInputSession {
-  userId: string;
-  userAgent: string;
-  ipAddress: string;
-  deviceType: string;
-  valid: boolean;
+export interface ISessionPayload
+  extends Omit<
+    Session,
+    "valid" | "createdAt" | "updatedAt" | "sessionId" | "expired"
+  > {
+  valid?: boolean;
 }
+
+export interface IUserPayload
+  extends Omit<User, "userId" | "createdAt" | "updatedAt"> {}
 
 @BindAllMethods
 class AuthService extends BaseService {
@@ -28,9 +31,7 @@ class AuthService extends BaseService {
     super();
   }
 
-  public async signUpUser(
-    input: Omit<User, "user_id" | "created_at" | "updated_at">
-  ) {
+  public async signUpUser(input: IUserPayload) {
     try {
       const existEmail = await this.prisma.user.findUnique({
         where: {
@@ -53,7 +54,7 @@ class AuthService extends BaseService {
         });
 
         const newUser = {
-          user_id: userId as string,
+          userId: userId as string,
           name: input.name,
           email: input.email,
           password: await hashPassword(input.password),
@@ -98,16 +99,16 @@ class AuthService extends BaseService {
     }
   }
 
-  public async createSession(input: IInputSession) {
+  public async createSession(input: ISessionPayload) {
     const { userId, userAgent, valid, ipAddress, deviceType } = input;
     try {
       return await this.prisma.session.create({
         data: {
-          user_id: userId,
-          user_agent: userAgent,
-          valid: valid,
-          ip_address: ipAddress,
-          device_type: deviceType,
+          userId: userId,
+          userAgent: userAgent,
+          valid: valid as boolean,
+          ipAddress: ipAddress,
+          deviceType: deviceType,
           expired: dateUTC().day(7).toISOString(),
         },
       });
@@ -123,14 +124,14 @@ class AuthService extends BaseService {
     ipAddress,
     deviceType,
     valid,
-  }: { valid?: boolean } & Omit<IInputSession, "valid">) {
+  }: { valid?: boolean } & ISessionPayload) {
     try {
       return await this.prisma.session.findMany({
         where: {
-          user_id: userId,
-          user_agent: userAgent,
-          ip_address: ipAddress,
-          device_type: deviceType,
+          userId: userId,
+          userAgent: userAgent,
+          ipAddress: ipAddress,
+          deviceType: deviceType,
           valid: valid,
         },
       });
@@ -172,12 +173,26 @@ class AuthService extends BaseService {
     return { accessToken, refreshToken };
   }
 
+  public resetSessionToken(res: express.Response) {
+    res.cookie("refreshToken", null, {
+      httpOnly: true,
+      sameSite: "strict",
+      path: "/",
+    });
+
+    res.cookie("accessToken", null, {
+      sameSite: "strict",
+      path: "/",
+      httpOnly: true,
+    });
+  }
+
   // findSessionById
   public async findSessionById(sessionId: string) {
     try {
       return await this.prisma.session.findUnique({
         where: {
-          id: sessionId,
+          sessionId: sessionId,
         },
       });
     } catch (error) {
@@ -190,7 +205,7 @@ class AuthService extends BaseService {
     try {
       return await this.prisma.session.findFirst({
         where: {
-          id: sessionId,
+          sessionId: sessionId,
           valid: true,
         },
       });
@@ -207,7 +222,7 @@ class AuthService extends BaseService {
     try {
       return this.prisma.session.update({
         where: {
-          id: sessionId,
+          sessionId: sessionId,
         },
         data: {
           valid: isValid,
@@ -221,7 +236,7 @@ class AuthService extends BaseService {
 
   public async getSessionUser(userId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { user_id: userId },
+      where: { userId: userId },
     });
 
     if (!user) return null;
@@ -234,14 +249,13 @@ class AuthService extends BaseService {
   }: {
     refreshToken: string;
   }): Promise<string | boolean> {
-    const prisma = prismaCfg;
     const { decoded } = JWT.verifyJWT(refreshToken);
 
     if (!decoded || !get(decoded, "session")) return false;
 
     const session = await this.prisma.session.findUnique({
       where: {
-        id: get(decoded, "session"),
+        sessionId: get(decoded, "session"),
       },
     });
 
@@ -249,7 +263,7 @@ class AuthService extends BaseService {
 
     const user = await this.prisma.user.findUnique({
       where: {
-        user_id: session.user_id,
+        userId: session.userId,
       },
     });
 
@@ -258,7 +272,7 @@ class AuthService extends BaseService {
     const accessToken = JWT.signJWT(
       {
         ...user,
-        session: session.id,
+        session: session.sessionId,
       },
       { expiresIn: ACCESS_TOKEN_TTL } // 15m
     );

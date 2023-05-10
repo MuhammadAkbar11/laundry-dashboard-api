@@ -71,7 +71,7 @@ class AuthController extends BaseController {
         throw this.error("AUTH", 401, "Email atau Kata Sandi Tidak Valid");
       }
 
-      const userId = user.user_id as string;
+      const userId = user.userId as string;
       const userAgent = req.useragent as UserAgentDetails;
       const ipAddress = req.clientIp as string;
       const deviceType = userAgentDeviceType(userAgent);
@@ -85,7 +85,7 @@ class AuthController extends BaseController {
       let session = null;
 
       if (existSession && existSession?.length !== 0) {
-        const sessionId = existSession[0].id as string;
+        const sessionId = existSession[0].sessionId as string;
         this.logger.info(existSession, "[AUTH] Session is found");
         await this.service.updateSessionStatusById(sessionId, true);
         session = await this.service.findSessionById(sessionId);
@@ -101,14 +101,14 @@ class AuthController extends BaseController {
       }
       this.logger.info(session, "[AUTH] session");
       if (session) {
-        const sessionId = session.id;
+        const sessionId = session.sessionId;
         const { refreshToken, accessToken } = this.service.setSessionToken(
           res,
           { user, sessionId: sessionId }
         );
 
         return res.status(200).json({
-          message: "Berhasi login dengan sukses",
+          message: `Berhasi login! Selamat datang ${user.name}`,
           user: { ...user, session: sessionId },
           refreshToken: MODE === "development" ? refreshToken : null,
           accessToken: MODE === "development" ? accessToken : null,
@@ -135,10 +135,10 @@ class AuthController extends BaseController {
         });
       }
 
-      const userId = user.user_id;
+      const userId = user.userId;
 
       const session = await this.prisma.session.findFirst({
-        where: { user_id: userId, valid: true },
+        where: { userId: userId, valid: true },
       });
 
       if (!session) {

@@ -93,7 +93,7 @@ export async function deserializeUser(
 
         const result = JWT.verifyJWT((newAccessToken as string) || "");
         const user = await authService.getSessionUser(
-          result.decoded?.user_id as string
+          result.decoded?.userId as string
         );
         req.user = {
           ...user,
@@ -123,19 +123,19 @@ export async function deserializeUser(
       }
 
       const currentUser = (await authService.getSessionUser(
-        validSessionWithAccessToken.user_id
+        validSessionWithAccessToken.userId
       )) as User;
 
       req.user = {
         ..._.omit(currentUser, "password"),
-        session: validSessionWithAccessToken.id,
+        session: validSessionWithAccessToken.sessionId,
       } as IUserReq;
       logger.info(
         {
-          id: currentUser.user_id,
+          userId: currentUser.userId,
           email: currentUser.email,
           name: currentUser.name,
-          session: validSessionWithAccessToken.id,
+          session: validSessionWithAccessToken.sessionId,
           userAgent: req.get("user-agent") as string,
         },
         `[SESSION] Session found and return current user data`
@@ -175,7 +175,7 @@ export async function deserializeUser(
         (newAccessToken as string) || ""
       );
       const user = await authService.getSessionUser(
-        newDecodedAccessToken?.user_id as string
+        newDecodedAccessToken?.userId as string
       );
 
       req.user = {

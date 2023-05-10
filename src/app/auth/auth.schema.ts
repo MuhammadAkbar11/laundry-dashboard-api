@@ -44,10 +44,7 @@ export const signInUserSchema = z.object({
   }),
 });
 
-export type SignInUserPayload = Omit<
-  z.TypeOf<typeof signInUserSchema>,
-  "body.passwordConfirmation"
->;
+export type SignInUserPayload = z.TypeOf<typeof signInUserSchema>;
 
 export type SignUpUserPayload = Omit<
   z.TypeOf<typeof signUpUserSchema>,

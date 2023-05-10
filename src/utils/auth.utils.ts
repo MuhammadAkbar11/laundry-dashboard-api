@@ -28,7 +28,7 @@ export async function isOAuthRefreshTokenExpired() {
     );
 
     oauth2Client.setCredentials({
-      refresh_token: OAUTH_REFRESH_TOKEN + "xx",
+      refresh_token: OAUTH_REFRESH_TOKEN,
     });
 
     // Call the getTokenInfo() method to get token information from Google
@@ -37,8 +37,8 @@ export async function isOAuthRefreshTokenExpired() {
         if (err) {
           const errors = new BaseError(
             "Error OAuth2",
-            err.response.status,
-            err.response.data?.error_description ||
+            err.response?.status,
+            err.response?.data?.error_description ||
               "Failed to create access token :("
           );
 

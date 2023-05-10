@@ -9,45 +9,62 @@ datasource db {
 }
 
 model User {
-  user_id    String    @id @db.VarChar(30)
-  email      String    @unique @db.VarChar(128)
-  name       String
-  avatar     String    @db.VarChar(225)
-  password   String    @db.VarChar(225)
-  role       Role      @default(ADMIN)
-  status     Status    @default(PENDING)
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  sessions   Session[]
+  userId    String    @id @map("user_id") @db.VarChar(30)
+  email     String    @unique @db.VarChar(128)
+  name      String
+  avatar    String    @db.VarChar(225)
+  password  String    @db.VarChar(225)
+  role      Role      @default(ADMIN)
+  status    Status    @default(PENDING)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  sessions  Session[]
 
   @@map("tb_users")
 }
 
 model Session {
-  id          String   @id @default(uuid())
-  user_id     String   @db.VarChar(30)
-  user_agent  String   @db.LongText
-  ip_address  String   @db.VarChar(128)
-  device_type String   @db.VarChar(35)
-  valid       Boolean
-  expired     DateTime
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  user        User     @relation(fields: [user_id], references: [user_id])
+  sessionId  String   @id @default(uuid()) @map("id")
+  userId     String   @map("user_id") @db.VarChar(30)
+  userAgent  String   @map("user_agent") @db.LongText
+  ipAddress  String   @map("ip_address") @db.VarChar(128)
+  deviceType String   @map("device_type") @db.VarChar(35)
+  valid      Boolean
+  expired    DateTime
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [userId])
 
-  @@index([user_id])
+  @@index([userId], map: "user_id_idx")
   @@map("tb_sessions")
+}
+
+model Service {
+  serviceId   String      @id @map("service_id") @db.VarChar(30)
+  name        String      @db.VarChar(128)
+  description String      @db.Text
+  unit        ServiceUnit
+  price       Int
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@map("tb_services")
 }
 
 /// @@Gen.model(hide: true)
 model AutoIncrement {
-  id      Int     @id @default(autoincrement())
-  tb_name String  @db.VarChar(255)
-  field   String? @unique @db.VarChar(20)
-  prefix  String? @db.VarChar(25)
-  value   BigInt? @default(1)
+  id     Int     @id @default(autoincrement())
+  tbName String  @map("tb_name") @db.VarChar(255)
+  field  String? @unique @db.VarChar(20)
+  prefix String? @db.VarChar(25)
+  value  BigInt? @default(1)
 
   @@map("tb_autoincrement")
+}
+
+enum ServiceUnit {
+  KG   @map("Kg")
+  PTNG @map("Ptng")
 }
 
 enum Role {
