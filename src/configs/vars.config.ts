@@ -92,8 +92,8 @@ export const DEFAULT_USER_AVATAR = "/images/avatar.jpeg";
 
 export const ACCESS_TOKEN_TTL = "15m";
 export const REFRESH_TOKEN_TTL = "7d";
-export const REFRESH_TOKEN_MAX_AGE = 300000; // 5 minutes
-export const ACCESS_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 5 minutes
+export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 5 minutes
+export const ACCESS_TOKEN_MAX_AGE = 300000; // 5 minutes
 
 export const HTTP_STATUS_CODE = {
   OK: 200,
