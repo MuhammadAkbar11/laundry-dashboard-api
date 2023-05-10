@@ -26,6 +26,11 @@ class AuthRouter extends BaseRouter<AuthController> {
       this.controller.postSignInUser
     );
     this.router.get("/user/session", requiredUser, this.controller.getSession);
+    this.router.post(
+      "/user/signout",
+      requiredUser,
+      this.controller.postSignOutUser
+    );
   }
 }
 

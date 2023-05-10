@@ -157,6 +157,50 @@ class AuthController extends BaseController {
       this.nextError(next, error);
     }
   }
+
+  public async postSignOutUser(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const user = req.user;
+
+      if (!user) {
+        throw this.error(
+          "AUTH",
+          401,
+          "Logout gagal! silahkan di coba lagi nanti"
+        );
+      }
+
+      const userId = user.userId;
+
+      const session = await this.prisma.session.findFirst({
+        where: { userId: userId, valid: true },
+      });
+
+      if (!session) {
+        throw this.error(
+          "AUTH",
+          401,
+          "Logout gagal, silahkan di coba lagi nanti!"
+        );
+      }
+
+      await this.prisma.session.delete({
+        where: {
+          sessionId: session.sessionId,
+        },
+      });
+
+      return res.json({
+        message: "Logout berhasil, sampai jumpa lagi!",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
 }
 
 export default AuthController;
