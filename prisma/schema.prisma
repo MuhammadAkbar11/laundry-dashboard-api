@@ -9,26 +9,30 @@ datasource db {
 }
 
 model User {
-  userId    String    @id @map("user_id") @db.VarChar(30)
-  email     String    @unique @db.VarChar(128)
-  name      String
-  avatar    String    @db.VarChar(225)
-  password  String    @db.VarChar(225)
-  role      Role      @default(ADMIN)
-  status    Status    @default(PENDING)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  sessions  Session[]
+  userId        String         @id @map("user_id") @db.VarChar(21)
+  email         String         @unique @db.VarChar(128)
+  name          String
+  avatar        String         @db.VarChar(225)
+  password      String         @db.VarChar(225)
+  role          Role           @default(ADMIN)
+  status        Status         @default(PENDING)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  sessions      Session[]
+  laundryQueues LaundryQueue[]
+  payments      Payment[]
+  expenses      Expenses[]
+  laundryRooms  LaundryRoom[]
 
   @@map("tb_users")
 }
 
 model Session {
   sessionId  String   @id @default(uuid()) @map("id")
-  userId     String   @map("user_id") @db.VarChar(30)
+  userId     String   @map("user_id") @db.VarChar(21)
   userAgent  String   @map("user_agent") @db.LongText
   ipAddress  String   @map("ip_address") @db.VarChar(128)
-  deviceType String   @map("device_type") @db.VarChar(35)
+  deviceType String   @map("device_type") @db.VarChar(40)
   valid      Boolean
   expired    DateTime
   createdAt  DateTime @default(now()) @map("created_at")
@@ -40,15 +44,170 @@ model Session {
 }
 
 model Service {
-  serviceId   String      @id @map("service_id") @db.VarChar(30)
+  serviceId   String      @id @map("service_id") @db.VarChar(21)
   name        String      @db.VarChar(128)
   description String      @db.Text
   unit        ServiceUnit
-  price       Int
+  price       BigInt
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
+  laundries   Laundry[]
 
   @@map("tb_services")
+}
+
+model LaundryQueue {
+  laundryQueueId     String                    @id @map("laundry_queue_id") @db.VarChar(21)
+  queuePaymentStatus LaundryQueuePaymentStatus @default(PENDING) @map("payment_status")
+  status             LaundryQueueStatus        @default(ONHOLD)
+  finishedAt         DateTime?                 @map("finished_at")
+  pickupAt           DateTime?                 @map("pickup_at")
+  createdAt          DateTime                  @default(now()) @map("created_at")
+  updatedAt          DateTime                  @updatedAt @map("updated_at")
+  customerId         String                    @map("customer_id") @db.VarChar(21)
+  userId             String                    @map("user_id") @db.VarChar(21)
+  customer           Customer                  @relation(fields: [customerId], references: [customerId])
+  user               User                      @relation(fields: [userId], references: [userId])
+  laundries          Laundry[]
+  payments           Payment[]
+  laundryRooms       LaundryRoom[]
+
+  @@index([userId], map: "user_id_idx")
+  @@index([customerId], map: "customer_id_idx")
+  @@map("tb_laundry_queues")
+}
+
+model Laundry {
+  laundryId      String       @id @map("laundry_id") @db.VarChar(21)
+  price          BigInt
+  quantity       Int
+  totalPrice     BigInt       @map("total_price")
+  note           String?      @db.Text
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  laundryQueueId String       @map("laundry_queue_id") @db.VarChar(21)
+  serviceId      String       @map("service_id") @db.VarChar(21)
+  laundryQueue   LaundryQueue @relation(fields: [laundryQueueId], references: [laundryQueueId])
+  service        Service      @relation(fields: [serviceId], references: [serviceId])
+
+  @@index([laundryQueueId], map: "ldry_queue_id_idx")
+  @@index([serviceId], map: "service_id_idx")
+  @@map("tb_laundries")
+}
+
+model CustomerLevel {
+  customerLevelId String     @id @map("cs_level_id") @db.VarChar(21)
+  name            String     @db.VarChar(255)
+  point           BigInt
+  discount        Int
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  customers       Customer[]
+
+  @@map("tb_customer_levels")
+}
+
+model Customer {
+  customerId      String         @id @map("customer_id") @db.VarChar(21)
+  name            String
+  address         String         @db.Text
+  phone           String
+  customerLevelId String         @map("cs_level_id") @db.VarChar(21)
+  point           Int            @default(0)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  customerLevel   CustomerLevel  @relation(fields: [customerLevelId], references: [customerLevelId])
+  laundryQueues   LaundryQueue[]
+
+  @@index([customerLevelId], map: "cs_level_id_idx")
+  @@map("tb_customers")
+}
+
+model CashFlow {
+  cashFlowId   String       @id @map("cashflow_id") @db.VarChar(21)
+  invoice      String
+  description  String       @db.Text
+  cashFlowType CashFlowType @map("cashflow_type")
+  total        BigInt
+  balance      BigInt
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  @@map("tb_cashflow")
+}
+
+model Payment {
+  paymentId      String        @id @map("payment_id") @db.VarChar(21)
+  invoice        String
+  totalService   Int
+  price          BigInt
+  discount       Int
+  totalPrice     BigInt
+  paid           BigInt
+  cashback       BigInt
+  PaymentMethod  PaymentMethod @map("payment_method")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  userId         String        @map("user_id") @db.VarChar(21)
+  laundryQueueId String        @map("laundry_queue_id") @db.VarChar(21)
+  user           User          @relation(fields: [userId], references: [userId])
+  laundryQueue   LaundryQueue  @relation(fields: [laundryQueueId], references: [laundryQueueId])
+
+  @@index([laundryQueueId], map: "ldry_queue_id_idx")
+  @@index([userId], map: "user_id_idx")
+  @@map("tb_payments")
+}
+
+model Expenses {
+  expensesId  String   @id @map("expenses_id") @db.VarChar(21)
+  invoice     String   @db.VarChar(255)
+  description String   @db.Text
+  total       BigInt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  userId      String   @map("user_id") @db.VarChar(21)
+  user        User     @relation(fields: [userId], references: [userId])
+
+  @@index([userId], map: "user_id_idx")
+  @@map("tb_expenses")
+}
+
+model Promo {
+  promoId     String   @id @map("promo_id") @db.VarChar(15)
+  kode        String   @db.VarChar(255)
+  description String   @db.Text
+  discount    Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("tb_promos")
+}
+
+model LaundryRoom {
+  laundryRoomId  String            @id @map("laundry_room_id") @db.VarChar(21)
+  total          Int?
+  status         LaundryRoomStatus
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  userId         String            @map("user_id") @db.VarChar(21)
+  laundryQueueId String            @map("laundry_queue_id") @db.VarChar(21)
+  user           User              @relation(fields: [userId], references: [userId])
+  laundryQueue   LaundryQueue      @relation(fields: [laundryQueueId], references: [laundryQueueId])
+
+  @@index([laundryQueueId], map: "ldry_queue_id_idx")
+  @@index([userId], map: "user_id_idx")
+  @@map("tb_laundry_rooms")
+}
+
+model Setting {
+  settingId   BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String   @db.VarChar(255)
+  description String   @db.Text
+  value       String   @db.LongText
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("tb_settings")
 }
 
 /// @@Gen.model(hide: true)
@@ -71,6 +230,35 @@ enum Role {
   ADMIN
   OPERATOR
   OFFICER
+}
+
+enum CashFlowType {
+  IN  @map("Masuk")
+  OUT @map("Keluar")
+}
+
+enum LaundryQueueStatus {
+  ONHOLD   @map("onhold")
+  WASHED   @map("washed")
+  FINISHED @map("finished")
+}
+
+enum LaundryRoomStatus {
+  READY    @map("ready")
+  WASHED   @map("washed")
+  FINISHED @map("finished")
+}
+
+enum PaymentMethod {
+  CASH          @map("tunai")
+  BANK_TRANSFER @map("bank_transfer")
+  GOPAY         @map("gopay")
+  DANA          @map("dana")
+}
+
+enum LaundryQueuePaymentStatus {
+  PENDING  @map("pending")
+  FINISHED @map("finished")
 }
 
 enum Status {
