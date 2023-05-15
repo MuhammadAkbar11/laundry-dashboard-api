@@ -65,8 +65,35 @@ export class BaseService {
   protected readonly logger = loggerConfig;
   protected readonly generateIncField = GenerateAutoIncField;
 
+  // protected table!: string;
+  protected table!: { name: string; primaryKey: string; lengthPKValue: number };
   constructor() {
     this.prisma = prisma;
+  }
+
+  protected async createPrimaryKeyValue(): Promise<string> {
+    try {
+      if (this.table === undefined) {
+        throw this.error(
+          "ERR_SERVICE",
+          500,
+          "Failed to create a primary key value because the 'table' property has not been initialised. please add the uninitialised 'table' property to the constructor.",
+          {
+            isOperational: false,
+          }
+        );
+      }
+
+      const result = await this.generateIncField({
+        tableName: this.table?.name,
+        field: this.table?.primaryKey,
+        length: this.table?.lengthPKValue,
+      });
+      return result as string;
+    } catch (error: any) {
+      error.errors.isOperational = false;
+      throw this.throwError(error);
+    }
   }
 
   protected error(

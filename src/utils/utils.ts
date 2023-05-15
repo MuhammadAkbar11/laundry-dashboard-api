@@ -94,6 +94,14 @@ export function objHasKey<O>(
   return obj !== null ? Object.prototype.hasOwnProperty.call(obj, key) : false;
 }
 
+export function replacerBigIntToNumber(obj: any) {
+  const stringifyObj = JSON.stringify(obj, (_, v) =>
+    typeof v === "bigint" ? v.toString() : v
+  );
+
+  return JSON.parse(stringifyObj);
+}
+
 export function isObjectEmpty(obj: Record<string, unknown>): boolean {
   return obj ? Object.keys(obj).length === 0 : false;
 }
