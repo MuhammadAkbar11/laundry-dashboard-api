@@ -122,3 +122,25 @@ export const USER_STATUS = {
   INACTIVE: "INACTIVE",
   SUSPENDED: "SUSPENDED",
 };
+
+export const SUCCESS_MESSAGES = {
+  create: (entityName: string) => `${entityName} telah berhasil dibuat`,
+  read: (entityName: string) => `Data ${entityName} telah berhasil diperoleh.`,
+  readById: (entityName: string, id: string) =>
+    `Data ${entityName} dengan ID ${id} telah berhasil diperoleh.`,
+  update: (entityName: string) =>
+    `Data ${entityName} telah berhasil diperbarui.`,
+  delete: (entityName: string, id: string) =>
+    `Data ${entityName} dengan ID ${id} telah berhasil dihapus.`,
+};
+
+export const ERR_MESSAGES = {
+  create: (entityName: string) => `Gagal membuat ${entityName}.`,
+  read: (entityName: string) => `Gagal mengambil data ${entityName}.`,
+  update: (entityName: string) => `Gagal memperbarui ${entityName}.`,
+  delete: (entityName: string) => `Gagal menghapus ${entityName}.`,
+  readByIdNotFound: (entityName: string, id: string) =>
+    `Gagal menemukan ${entityName} dengan ID '${id}'.`,
+  readByColumnInvalid: (entityName: string, columnName: string) =>
+    `Gagal membaca data ${entityName} dengan kolom yang tidak valid '${columnName}'.`,
+};

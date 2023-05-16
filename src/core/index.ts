@@ -1,7 +1,11 @@
 import { Application, Router, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
 import { ErrorData } from "../utils/types/interfaces";
-import { HTTP_STATUS_CODE } from "../configs/vars.config";
+import {
+  ERR_MESSAGES,
+  HTTP_STATUS_CODE,
+  SUCCESS_MESSAGES,
+} from "../configs/vars.config";
 import BaseError from "../helpers/error.helper";
 import { getErrorSnippets } from "../utils/utils";
 import loggerConfig from "../configs/logger.config";
@@ -43,6 +47,26 @@ export abstract class BaseController {
     this.prisma = prisma;
   }
 
+  protected getSuccessMessage(
+    operation: keyof typeof SUCCESS_MESSAGES,
+    entityName: string,
+    ...args: any[]
+  ): string {
+    const successMessageFn = SUCCESS_MESSAGES[operation];
+    // @ts-ignore
+    return successMessageFn ? successMessageFn(entityName, ...args) : "Success";
+  }
+
+  protected getErrorMessage(
+    operation: keyof typeof ERR_MESSAGES,
+    entityName: string,
+    ...args: any[]
+  ): string {
+    const errorMessageFn = ERR_MESSAGES[operation];
+    // @ts-ignore
+    return errorMessageFn ? errorMessageFn(entityName, ...args) : "Error";
+  }
+
   protected error(
     name: string | null,
     statusCode: number,
@@ -65,7 +89,6 @@ export class BaseService {
   protected readonly logger = loggerConfig;
   protected readonly generateIncField = GenerateAutoIncField;
 
-  // protected table!: string;
   protected table!: { name: string; primaryKey: string; lengthPKValue: number };
   constructor() {
     this.prisma = prisma;
