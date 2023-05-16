@@ -17,6 +17,13 @@ export interface ErrorData {
   [key: string]: any;
 }
 
+export interface IResponseError {
+  name: string;
+  status: number;
+  message: string;
+  serverLogErrors?: Record<string, any>;
+}
+
 export interface IFileImg {
   type: string;
   message: string;

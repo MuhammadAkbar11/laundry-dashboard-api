@@ -11,10 +11,10 @@ async function GenerateAutoIncField({
 }: IGenerateAutoIncFieldHelper) {
   const prisma = prismaTx ? prismaTx : mainPrisma;
   try {
-    const tableTarget = await prisma.autoIncrement.findFirst({
+    const tableTarget = await prisma.autoIncrement.findUnique({
       where: {
         field: field,
-        tb_name: tableName,
+        // tbName: tableName,
       },
     });
     let zero = [];
@@ -46,7 +46,7 @@ async function GenerateAutoIncField({
 
     throw new BaseError(
       "ERR_AUTOINCREMENT",
-      400,
+      500,
       `failed to generate auto-increment for column ${field} with table ${tableName}. because column ${field} or table ${tableName} is not found in the auto-increments table.`
     );
   } catch (error: any) {

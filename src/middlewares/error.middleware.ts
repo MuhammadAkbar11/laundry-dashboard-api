@@ -3,8 +3,9 @@ import { omit } from "lodash";
 import BaseError from "../helpers/error.helper";
 import logger from "../configs/logger.config";
 import { Request, NextFunction, Response } from "express";
-import { HTTP_STATUS_CODE } from "../configs/vars.config";
+import { HTTP_STATUS_CODE, MODE } from "../configs/vars.config";
 import { isObjectEmpty, objHasKey, printDivider } from "../utils/utils";
+import { IResponseError } from "../utils/types/interfaces";
 
 function logError(err: any) {
   logger.error(chalk.red(`[SERVER] ERROR(${err?.statusCode}): ${err.message}`));
@@ -56,11 +57,26 @@ export function returnErrorMiddleware(
   const message = err?.message || "Internal Server Error";
   const errData = omit(err?.errors, "isOperational") || null;
 
-  let responseData = {
+  let responseData: IResponseError = {
     name,
     status,
     message,
   };
+
+  if (err?.errors?.isOperational === false) {
+    responseData = {
+      name: "SERVER_ERROR",
+      status: HTTP_STATUS_CODE.INTERNAL_SERVER,
+      message: "Internal Server Error",
+      serverLogErrors:
+        MODE === "development"
+          ? {
+              ...omit(err, "errors"),
+              ...err?.errors,
+            }
+          : undefined,
+    };
+  }
 
   if (objHasKey(errData, "stackTrace")) {
     delete errData.stackTrace;

@@ -10,7 +10,7 @@ const DB_AUTOINC_COLOUMNS: {
     table: "tb_users",
     columns: [{ name: "user_id", prefix: "USR" }],
   },
-  // { table: "tb_products", columns: [{ name: "product_id", prefix: "PRD" }] },
+  { table: "tb_products", columns: [{ name: "product_id", prefix: "PRD" }] },
 ];
 
 const main = async () => {
@@ -49,7 +49,7 @@ const main = async () => {
       );
       if (match) {
         autoIncrementConfigs.push({
-          tb_name: table,
+          tbName: table,
           field: column,
           prefix: match.columns[0].prefix,
         });
