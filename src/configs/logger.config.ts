@@ -7,6 +7,7 @@ const time = dateUTC().tz("Asia/Jakarta").format(timeformat);
 const streams = [
   {
     stream: pinoPretty({
+      sync: true,
       colorize: true,
       destination: 1,
       ignore: "pid",

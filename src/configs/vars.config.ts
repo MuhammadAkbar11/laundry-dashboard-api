@@ -8,9 +8,13 @@ import { Role } from "@prisma/client";
 
 const appDirname = path.resolve();
 
-let mode: ModeTypes = Boolean(process.env.TS_NODE_DEV)
+let mode: ModeTypes = Boolean(process.env?.TS_NODE_DEV)
   ? "development"
   : "production";
+
+if (!process.env?.TS_NODE_DEV) {
+  mode = process.env?.NODE_ENV as ModeTypes;
+}
 
 const envFilePaths = {
   production: path.join(appDirname, ".env"),
