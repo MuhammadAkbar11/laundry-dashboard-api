@@ -1,31 +1,58 @@
-import { faker } from "@faker-js/faker";
-import { User } from "@prisma/client";
-import { ROLES, USER_STATUS } from "../../configs/vars.config";
+import * as prisma from "@prisma/client";
+
 import { hashPassword } from "../../utils/auth.utils";
+import GenerateAutoIncField from "../../helpers/autoincrement.helper";
+import { omit } from "lodash";
 
-async function generateSeedUsers(numUsers: number) {
-  const seedUsers: User[] = [];
+const userData: Omit<prisma.User, "createdAt" | "updatedAt" | "userId">[] = [
+  {
+    email: "superadmin@gmail.com",
+    name: "Superadmin",
+    avatar: "/images/avatar.jpeg",
+    password: "password123",
+    role: "ADMIN",
+    status: "ACTIVE",
+  },
+  {
+    email: "admin@gmail.com",
+    name: "Admin",
+    avatar: "/images/avatar.jpeg",
+    password: "password123",
+    role: "OPERATOR",
+    status: "ACTIVE",
+  },
+  {
+    email: "user@gmail.com",
+    name: "User",
+    avatar: "/images/avatar.jpeg",
+    password: "password123",
+    role: "OFFICER",
+    status: "ACTIVE",
+  },
+];
 
-  for (let i = 0; i < numUsers; i++) {
-    const name = faker.name.fullName();
-    const email = faker.internet.email(name);
-    const status = faker.helpers.arrayElement([
-      ...Object.keys(USER_STATUS),
-    ]) as string;
-    const role = faker.helpers.arrayElement([...Object.keys(ROLES)]) as string;
-    const newUser = {
-      email: email,
-      name: name,
-      password: await hashPassword("123456"),
-      status: status,
-      role: role,
-      avatar: faker.image.avatar(),
-    } as User;
+export async function seedInitUsers(prismaTx: prisma.Prisma.TransactionClient) {
+  const finalsersData: prisma.User[] = [];
 
-    seedUsers.push(newUser);
+  for (const user of userData) {
+    const userId = await GenerateAutoIncField({
+      prismaTx: prismaTx,
+      tableName: "tb_users",
+      field: "user_id",
+      length: 6,
+    });
+
+    const data = {
+      ...omit(user, "password", "role"),
+      userId,
+      password: await hashPassword(user.password),
+      role: (user?.role as prisma.Role) || "ADMIN",
+    } as prisma.User;
+
+    finalsersData.push(data);
   }
 
-  return seedUsers;
-}
+  const createdUsers = await prismaTx.user.createMany({ data: finalsersData });
 
-export default generateSeedUsers;
+  return createdUsers;
+}
