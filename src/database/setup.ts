@@ -1,5 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import inquirer from "inquirer";
 import logger from "../configs/logger.config";
+import chalk from "chalk";
+import { dotenvConfig } from "../configs/vars.config";
+
+dotenvConfig;
+
 const prisma = new PrismaClient();
 
 const DB_AUTOINC_COLOUMNS: {
@@ -10,7 +16,26 @@ const DB_AUTOINC_COLOUMNS: {
     table: "tb_users",
     columns: [{ name: "user_id", prefix: "USR" }],
   },
-  { table: "tb_products", columns: [{ name: "product_id", prefix: "PRD" }] },
+  {
+    table: "tb_customer_levels",
+    columns: [{ name: "cs_level_id", prefix: "CSLVL" }],
+  },
+  {
+    table: "tb_customers",
+    columns: [{ name: "customer_id", prefix: "CSMR" }],
+  },
+  {
+    table: "tb_services",
+    columns: [{ name: "service_id", prefix: "LSRV" }],
+  },
+  {
+    table: "tb_laundries",
+    columns: [{ name: "laundry_id", prefix: "LDRY" }],
+  },
+  {
+    table: "tb_laundry_rooms",
+    columns: [{ name: "laundry_room_id", prefix: "LDRM" }],
+  },
 ];
 
 const main = async () => {
@@ -57,14 +82,7 @@ const main = async () => {
     }
   }
 
-  // // find tables in DB_AUTOINC_COLOUMNS that are not used in tables
-  // for (const { table } of DB_AUTOINC_COLOUMNS) {
-  //   if (!usedTables.has(table)) {
-  //     logger.warn(
-  //       `[DATABASE] Table ${table} in DB_AUTOINC_COLOUMNS is not found in tables of database`
-  //     );
-  //   }
-  // }
+  logger.info("[DATABASE] setup Auto Increment...");
 
   for (const { table, columns } of DB_AUTOINC_COLOUMNS) {
     const match = tables.find(t => t.table === table);
@@ -82,7 +100,47 @@ const main = async () => {
     }
   }
 
-  await prisma.autoIncrement.createMany({ data: autoIncrementConfigs });
+  for (const autoIncCfgItem of autoIncrementConfigs) {
+    const exists = await prisma.autoIncrement.findMany({
+      where: {
+        tbName: autoIncCfgItem.tbName,
+        field: autoIncCfgItem.field,
+      },
+    });
+    const fieldTxt = chalk.bold(autoIncCfgItem.field);
+    const tbTxt = chalk.bold(autoIncCfgItem.tbName);
+    if (exists.length === 0) {
+      console.log("");
+      logger.warn(
+        `[DATABASE] Column ${fieldTxt} with table ${tbTxt} does'nt and it will added...`
+      );
+      await prisma.autoIncrement.create({ data: autoIncCfgItem });
+      logger.warn(
+        `[DATABASE] Successfully added column ${fieldTxt} with table ${tbTxt}`
+      );
+    } else {
+      console.log("");
+      const resetValueConfirm = await inquirer.prompt({
+        type: "confirm",
+        name: "isResetValue",
+        message: `Column ${fieldTxt} with table ${tbTxt} already exist so wanna reset the value?`,
+        default: false,
+      });
+
+      await prisma.autoIncrement.update({
+        where: { id: exists[0].id },
+        data: {
+          ...autoIncCfgItem,
+          value: resetValueConfirm.isResetValue ? 1 : exists[0].value,
+        },
+      });
+
+      logger.warn(
+        `[DATABASE] Successfully update column ${fieldTxt} with table ${tbTxt}`
+      );
+    }
+  }
+  console.log("");
 
   logger.info("[DATABASE] setup database successfully");
 };
