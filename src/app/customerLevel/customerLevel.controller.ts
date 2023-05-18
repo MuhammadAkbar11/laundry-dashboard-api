@@ -111,10 +111,14 @@ class CustomerLevelController extends BaseController {
         );
       }
 
+      const name = req.body?.name || customerLvl.name;
+      const point = BigInt(req.body?.point as number) || customerLvl.point;
+      const discount = req.body?.discount || customerLvl.discount;
+
       const newLevel = await this.service.update(customerLvlIdParam, {
-        name: req.body.name as string,
-        point: BigInt(req.body.point as number) as bigint,
-        discount: req.body.discount as number,
+        name,
+        point,
+        discount,
       });
 
       res.status(200).json({

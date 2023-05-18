@@ -12,32 +12,26 @@ import {
 
 @BindAllMethods
 class CustomerLevelRouter extends BaseRouter<CustomerLevelController> {
-  constructor(protected express: express.Application) {
+  constructor(protected express: express.Express) {
     super(CustomerLevelController, express);
   }
 
   protected routes(): void {
-    this.router.get("/", this.controller.get);
-    this.router.post(
-      "/",
-      [validateResource(createCustomerLevelSchema)],
-      this.controller.post
-    );
-    this.router.get(
-      "/:customerLevelId",
-      [validateResource(readCustomerLevelSchema)],
-      this.controller.getId
-    );
-    this.router.put(
-      "/:customerLevelId",
-      [validateResource(updateCustomerLevelSchema)],
-      this.controller.put
-    );
-    this.router.delete(
-      "/:customerLevelId",
-      [validateResource(deleteCustomerLevelSchema)],
-      this.controller.delete
-    );
+    this.router
+      .route("/")
+      .get(this.controller.get)
+      .post(
+        [validateResource(createCustomerLevelSchema)],
+        this.controller.post
+      );
+    this.router
+      .route("/:customerLevelId")
+      .get([validateResource(readCustomerLevelSchema)], this.controller.getId)
+      .put([validateResource(updateCustomerLevelSchema)], this.controller.put)
+      .delete(
+        [validateResource(deleteCustomerLevelSchema)],
+        this.controller.delete
+      );
   }
 }
 
