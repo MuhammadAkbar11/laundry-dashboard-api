@@ -6,10 +6,8 @@ import { replacerBigIntToNumber } from "../../utils/utils";
 export interface ICustomerInput
   extends Omit<
     Customer,
-    "customerId" | "createdAt" | "updatedAt" | "customerLevel" | "laundryQueues"
-  > {
-  customerId: string;
-}
+    "createdAt" | "updatedAt" | "customerLevel" | "laundryQueues"
+  > {}
 
 @BindAllMethods
 class CustomerService extends BaseService {

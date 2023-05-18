@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { Customer, Prisma, PrismaClient } from "@prisma/client";
+import { Customer, Prisma } from "@prisma/client";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseController } from "../../core";
 import {
@@ -11,8 +11,6 @@ import {
 } from "./customer.schema";
 import CustomerService from "./customer.service";
 import Pagination from "../../helpers/pagination.helper";
-
-const prisma = new PrismaClient();
 
 @BindAllMethods
 class CustomerController extends BaseController {
@@ -149,11 +147,7 @@ class CustomerController extends BaseController {
     try {
       const { name, address, phone, customerLevelId, point } = req.body;
 
-      const existingCustomer = await prisma.customer.findUnique({
-        where: {
-          customerId: customerIdParam,
-        },
-      });
+      const existingCustomer = await this.service.getById(customerIdParam);
 
       if (!existingCustomer) {
         throw this.error(
