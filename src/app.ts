@@ -18,6 +18,7 @@ import ProfileRouter from "./app/profile/profile.routes";
 import EmailRouter from "./app/email/email.routes";
 import CustomerRouter from "./app/customer/customer.routes";
 import CustomerLevelRouter from "./app/customerLevel/customerLevel.routes";
+import LaundryServiceRouter from "./app/laundryService/laundryService.routes";
 
 class App {
   public server;
@@ -52,6 +53,10 @@ class App {
     this.server.use("/auth", new AuthRouter(this.server).getRouter());
     this.server.use("/profile", new ProfileRouter(this.server).getRouter());
     this.server.use("/customer", new CustomerRouter(this.server).getRouter());
+    this.server.use(
+      "/laundry/service",
+      new LaundryServiceRouter(this.server).getRouter()
+    );
     this.server.use(
       "/level/customer",
       new CustomerLevelRouter(this.server).getRouter()
