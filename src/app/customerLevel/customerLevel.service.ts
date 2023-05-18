@@ -4,10 +4,7 @@ import { BindAllMethods } from "../../utils/decorators.utils";
 import { replacerBigIntToNumber } from "../../utils/utils";
 
 export interface ICustomerLevelInput
-  extends Omit<
-    CustomerLevel,
-    "customerLevelId" | "createdAt" | "updatedAt" | "customers"
-  > {
+  extends Omit<CustomerLevel, "createdAt" | "updatedAt" | "customers"> {
   customerLevelId: string;
 }
 
