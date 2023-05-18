@@ -12,10 +12,11 @@ import {
   returnError404Middleware,
   returnErrorMiddleware,
 } from "./middlewares/error.middleware";
+import { deserializeUser } from "./middlewares/auth.middleware";
 import AuthRouter from "./app/auth/auth.routes";
 import ProfileRouter from "./app/profile/profile.routes";
-import { deserializeUser } from "./middlewares/auth.middleware";
 import EmailRouter from "./app/email/email.routes";
+import CustomerRouter from "./app/customer/customer.routes";
 import CustomerLevelRouter from "./app/customerLevel/customerLevel.routes";
 
 class App {
@@ -47,16 +48,15 @@ class App {
   }
 
   routes() {
-    const demoRouter = new DemoRouter(this.server);
-    const emailRouter = new EmailRouter(this.server);
-    const customerLevelRouter = new CustomerLevelRouter(this.server);
-    const profileRouter = new ProfileRouter(this.server);
-    const authRouter = new AuthRouter(this.server);
-    this.server.use("/auth", authRouter.getRouter());
-    this.server.use("/profile", profileRouter.getRouter());
-    this.server.use("/customer/level", customerLevelRouter.getRouter());
-    this.server.use("/email", emailRouter.getRouter());
-    this.server.use("/", demoRouter.getRouter());
+    this.server.use("/", new DemoRouter(this.server).getRouter());
+    this.server.use("/auth", new AuthRouter(this.server).getRouter());
+    this.server.use("/profile", new ProfileRouter(this.server).getRouter());
+    this.server.use("/customer", new CustomerRouter(this.server).getRouter());
+    this.server.use(
+      "/level/customer",
+      new CustomerLevelRouter(this.server).getRouter()
+    );
+    this.server.use("/email", new EmailRouter(this.server).getRouter());
   }
 
   errorMiddlewares() {
