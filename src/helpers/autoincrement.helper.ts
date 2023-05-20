@@ -8,22 +8,33 @@ async function GenerateAutoIncField({
   tableName,
   field,
   length = 6,
+  customPrefix = "",
 }: IGenerateAutoIncFieldHelper) {
   const prisma = prismaTx ? prismaTx : mainPrisma;
   try {
     const tableTarget = await prisma.autoIncrement.findUnique({
       where: {
         field: field,
-        // tbName: tableName,
       },
     });
     let zero = [];
 
     if (tableTarget) {
-      const prefix = `${tableTarget.prefix}`;
+      const prefix = `${tableTarget.prefix}${customPrefix}`;
       const counter = Number(tableTarget?.value) as number;
       const prefixLength = prefix.length;
-      const num = length - +prefixLength - counter.toString().length;
+      // const num = length - +prefixLength - counter.toString().length;
+      let num = Math.max(length - prefixLength - counter.toString().length);
+
+      if (num < 0) {
+        num = 0;
+        if (counter < 10) {
+          num += 2;
+        } else if (counter < 100) {
+          num += 1;
+        }
+      }
+
       for (let i = 0; i < num; i++) {
         zero.push("0");
       }
