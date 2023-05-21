@@ -1,5 +1,5 @@
 import { Application, Router, NextFunction } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { ErrorData } from "../utils/types/interfaces";
 import {
   ERR_MESSAGES,
@@ -94,7 +94,9 @@ export class BaseService {
     this.prisma = prisma;
   }
 
-  protected async createPrimaryKeyValue(): Promise<string> {
+  protected async createPrimaryKeyValue(
+    prismaTrx?: Prisma.TransactionClient
+  ): Promise<string> {
     try {
       if (this.table === undefined) {
         throw this.error(
@@ -108,6 +110,7 @@ export class BaseService {
       }
 
       const result = await this.generateIncField({
+        prismaTx: prismaTrx as Prisma.TransactionClient,
         tableName: this.table?.name,
         field: this.table?.primaryKey,
         length: this.table?.lengthPKValue,

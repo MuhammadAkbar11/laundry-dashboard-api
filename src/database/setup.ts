@@ -33,6 +33,10 @@ const DB_AUTOINC_COLOUMNS: {
     columns: [{ name: "laundry_id", prefix: "LDRY" }],
   },
   {
+    table: "tb_laundry_queues",
+    columns: [{ name: "laundry_queue_id", prefix: "LQU" }],
+  },
+  {
     table: "tb_laundry_rooms",
     columns: [{ name: "laundry_room_id", prefix: "LDRM" }],
   },
