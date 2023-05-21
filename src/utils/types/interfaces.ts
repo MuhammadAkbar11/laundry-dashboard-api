@@ -35,4 +35,5 @@ export interface IGenerateAutoIncFieldHelper {
   tableName: string;
   field: string;
   length?: number;
+  customPrefix?: string;
 }

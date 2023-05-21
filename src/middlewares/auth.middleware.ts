@@ -29,6 +29,7 @@ function getTokens(req: express.Request): {
   let refreshToken = req.cookies?.refreshToken as string;
 
   if (req.get("user-agent")?.includes("Postman")) {
+    logger.info("[SESSIN] Get refreshToken & accessToken using req headers");
     refreshToken = _.get(req, "headers.x-refresh") as string;
     accessToken = _.get(req, "headers.authorization", "").replace(
       /^Bearer\s/,
