@@ -16,6 +16,14 @@ export function printDivider(): string {
   return divider;
 }
 
+export function removePunctuation(price: string): number {
+  const withoutDot = price.replace(/\./g, "");
+  const withoutComma = withoutDot.replace(/,/g, "");
+  const numericPrice = parseInt(withoutComma, 10);
+
+  return numericPrice;
+}
+
 export function getErrorSnippets(error: Error) {
   const errorMessage = error.stack || "";
   const stackTrace = errorMessage

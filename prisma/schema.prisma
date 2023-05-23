@@ -73,7 +73,7 @@ model LaundryQueue {
   user               User                      @relation(fields: [userId], references: [userId])
   laundries          Laundry[]
   payments           Payment[]
-  laundryRooms       LaundryRoom[]
+  laundryRooms       LaundryRoom?
 
   @@index([userId], map: "user_id_idx")
   @@index([customerId], map: "customer_id_idx")
@@ -193,7 +193,7 @@ model LaundryRoom {
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
   userId         String            @map("user_id") @db.VarChar(21)
-  laundryQueueId String            @map("laundry_queue_id") @db.VarChar(21)
+  laundryQueueId String            @unique @map("laundry_queue_id") @db.VarChar(21)
   user           User              @relation(fields: [userId], references: [userId])
   laundryQueue   LaundryQueue      @relation(fields: [laundryQueueId], references: [laundryQueueId])
 
