@@ -4,10 +4,11 @@ export const createCustomerSchema = z.object({
   body: z.object({
     name: z
       .string({ required_error: "Name is required" })
+      .min(1, "Name is required")
       .max(255, { message: "Name should not exceed 255 characters" }),
     address: z.string({ required_error: "Address is required" }),
     phone: z.string({ required_error: "Phone is required" }),
-    customerLevelId: z.string({ required_error: "Phone is required" }).max(21, {
+    customerLevelId: z.string({ required_error: "level is required" }).max(21, {
       message: "Customer level ID should not exceed 21 characters",
     }),
     point: z.number().int().default(0),
