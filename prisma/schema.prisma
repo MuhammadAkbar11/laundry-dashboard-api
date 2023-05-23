@@ -62,11 +62,13 @@ model LaundryQueue {
   queuePaymentStatus LaundryQueuePaymentStatus @default(PENDING) @map("payment_status")
   status             LaundryQueueStatus        @default(ONHOLD)
   finishedAt         DateTime?                 @map("finished_at")
-  pickupAt           DateTime?                 @map("pickup_at")
   createdAt          DateTime                  @default(now()) @map("created_at")
   updatedAt          DateTime                  @updatedAt @map("updated_at")
   customerId         String                    @map("customer_id") @db.VarChar(21)
   userId             String                    @map("user_id") @db.VarChar(21)
+  deliveryAt         DateTime?                 @map("delivery_at")
+  deliveryType       DeliveryType              @map("delivery_type")
+  note               String?                   @db.Text
   customer           Customer                  @relation(fields: [customerId], references: [customerId])
   user               User                      @relation(fields: [userId], references: [userId])
   laundries          Laundry[]
@@ -83,11 +85,11 @@ model Laundry {
   price          BigInt
   quantity       Int
   totalPrice     BigInt       @map("total_price")
-  note           String?      @db.Text
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   laundryQueueId String       @map("laundry_queue_id") @db.VarChar(21)
   serviceId      String       @map("service_id") @db.VarChar(21)
+  note           String?      @db.Text
   laundryQueue   LaundryQueue @relation(fields: [laundryQueueId], references: [laundryQueueId])
   service        Service      @relation(fields: [serviceId], references: [serviceId])
 
@@ -267,4 +269,9 @@ enum Status {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum DeliveryType {
+  DELIVERED @map("delivered")
+  PICKUP    @map("pickup")
 }
