@@ -20,13 +20,39 @@ class CustomerController extends BaseController {
     super();
   }
 
+  private sorting(
+    orderBy: string,
+    sortBy: Prisma.SortOrder
+  ): Prisma.CustomerOrderByWithRelationAndSearchRelevanceInput {
+    let sortingOptions: Prisma.CustomerOrderByWithRelationAndSearchRelevanceInput =
+      {
+        [`${orderBy || "customerId"}`]: sortBy || "desc",
+      };
+
+    if (orderBy?.includes("countLaundryQueue")) {
+      sortingOptions = {
+        laundryQueues: {
+          _count: sortBy?.toLocaleLowerCase() as Prisma.SortOrder,
+        },
+      };
+    } else if (orderBy?.includes("customerLevel")) {
+      sortingOptions = {
+        customerLevel: {
+          name: sortBy as Prisma.SortOrder,
+        },
+      };
+    }
+
+    return sortingOptions;
+  }
+
   public async get(
     req: Request<{}, {}, {}, ReadCustomerPayload["query"]>,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const { _search, _page = 1, _limit = 10 } = req.query;
+      const { _search, _page = 1, _limit = 10, _orderBy, _sortBy } = req.query;
 
       let where: Prisma.CustomerWhereInput = {};
 
@@ -36,18 +62,23 @@ class CustomerController extends BaseController {
       });
 
       const { limit, skip } = paginated.getPagination();
+      const sorting = this.sorting(
+        _orderBy as string,
+        _sortBy as Prisma.SortOrder
+      );
 
       if (_search) {
-        // where = {
-        //   name: { search: _search },
-        //   address: { search: _search },
-        //   phone: { search: `"${_search}"` },
-        // };
         where = {
           OR: [
+            { customerId: { contains: _search } },
             { name: { contains: _search } },
             { address: { contains: _search } },
             { phone: { contains: _search } },
+            {
+              customerLevel: {
+                name: { contains: _search },
+              },
+            },
           ],
         };
       }
@@ -55,10 +86,14 @@ class CustomerController extends BaseController {
       const customers = (await this.service.getAll({
         where,
         skip,
-        orderBy: {
-          createdAt: "asc",
-        },
+        orderBy: sorting,
         take: limit,
+        include: {
+          customerLevel: true,
+          _count: {
+            select: { laundryQueues: true },
+          },
+        },
       })) as Customer[];
 
       const totalCustomers = await this.service.count({ where });
