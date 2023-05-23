@@ -10,6 +10,7 @@ import {
   updateCustomerSchema,
 } from "./customer.schema";
 import CustomerController from "./customer.controller";
+import { requiredUser } from "../../middlewares/auth.middleware";
 
 @BindAllMethods
 class CustomerRouter extends BaseRouter<CustomerController> {
@@ -20,14 +21,34 @@ class CustomerRouter extends BaseRouter<CustomerController> {
   protected routes(): void {
     this.router
       .route("/all")
-      .get([validateResource(readCustomerSchema)], this.controller.get)
-      .post([validateResource(createCustomerSchema)], this.controller.post);
+      .get(
+        requiredUser,
+        [validateResource(readCustomerSchema)],
+        this.controller.get
+      )
+      .post(
+        requiredUser,
+        [validateResource(createCustomerSchema)],
+        this.controller.post
+      );
 
     this.router
       .route("/:customerId")
-      .get([validateResource(readOneCustomerSchema)], this.controller.getId)
-      .put([validateResource(updateCustomerSchema)], this.controller.put)
-      .delete([validateResource(deleteCustomerSchema)], this.controller.delete);
+      .get(
+        requiredUser,
+        [validateResource(readOneCustomerSchema)],
+        this.controller.getId
+      )
+      .put(
+        requiredUser,
+        [validateResource(updateCustomerSchema)],
+        this.controller.put
+      )
+      .delete(
+        requiredUser,
+        [validateResource(deleteCustomerSchema)],
+        this.controller.delete
+      );
   }
 }
 
