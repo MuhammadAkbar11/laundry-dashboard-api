@@ -114,6 +114,11 @@ export function isObjectEmpty(obj: Record<string, unknown>): boolean {
   return obj ? Object.keys(obj).length === 0 : false;
 }
 
+export const isNumericQuery = (query: string): boolean => {
+  const numericRegex = /^\d+$/;
+  return numericRegex.test(query);
+};
+
 export function userAgentDeviceType(userAgent: UserAgentDetails) {
   return userAgent?.isMobile
     ? "mobile"
