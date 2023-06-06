@@ -11,6 +11,7 @@ import { getErrorSnippets } from "../utils/utils";
 import loggerConfig from "../configs/logger.config";
 import prisma from "../configs/prisma.config";
 import GenerateAutoIncField from "../helpers/autoincrement.helper";
+import { IncTablesFieldTypes, IncTablesNameTypes } from "../utils/types/types";
 
 export abstract class BaseRouter<T> {
   protected readonly router: Router;
@@ -89,7 +90,11 @@ export class BaseService {
   protected readonly logger = loggerConfig;
   protected readonly generateIncField = GenerateAutoIncField;
 
-  protected table!: { name: string; primaryKey: string; lengthPKValue: number };
+  protected table!: {
+    name: IncTablesNameTypes;
+    primaryKey: IncTablesFieldTypes;
+    lengthPKValue: number;
+  };
   constructor() {
     this.prisma = prisma;
   }

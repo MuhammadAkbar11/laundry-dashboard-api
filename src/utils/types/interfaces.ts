@@ -1,4 +1,5 @@
 import * as prisma from "@prisma/client";
+import { IncTablesFieldTypes, IncTablesNameTypes } from "./types";
 
 export interface ISession extends Omit<prisma.User, "password"> {
   session: string;
@@ -32,8 +33,8 @@ export interface IFileImg {
 
 export interface IGenerateAutoIncFieldHelper {
   prismaTx?: prisma.Prisma.TransactionClient;
-  tableName: string;
-  field: string;
+  tableName: IncTablesNameTypes;
+  field: IncTablesFieldTypes;
   length?: number;
   customPrefix?: string;
 }
