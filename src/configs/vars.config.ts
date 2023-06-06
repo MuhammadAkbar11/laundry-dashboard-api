@@ -148,3 +148,45 @@ export const ERR_MESSAGES = {
   readByColumnInvalid: (entityName: string, columnName: string) =>
     `Gagal membaca data ${entityName} dengan kolom yang tidak valid '${columnName}'.`,
 };
+
+export const DB_AUTOINC_COLOUMNS: {
+  table: string;
+  columns: { name: string; prefix: string }[];
+}[] = [
+  {
+    table: "tb_users",
+    columns: [{ name: "user_id", prefix: "USR" }],
+  },
+  {
+    table: "tb_customer_levels",
+    columns: [{ name: "cs_level_id", prefix: "CSLVL" }],
+  },
+  {
+    table: "tb_customers",
+    columns: [{ name: "customer_id", prefix: "CSMR" }],
+  },
+  {
+    table: "tb_services",
+    columns: [{ name: "service_id", prefix: "LSRV" }],
+  },
+  {
+    table: "tb_laundries",
+    columns: [{ name: "laundry_id", prefix: "LDRY" }],
+  },
+  {
+    table: "tb_laundry_queues",
+    columns: [{ name: "laundry_queue_id", prefix: "LQU" }],
+  },
+  {
+    table: "tb_laundry_rooms",
+    columns: [{ name: "laundry_room_id", prefix: "LDRM" }],
+  },
+  {
+    table: "tb_history_service",
+    columns: [{ name: "history_service_id", prefix: "HLSV" }],
+  },
+  {
+    table: "tb_payments",
+    columns: [{ name: "payment_id", prefix: "LPAY" }],
+  },
+];

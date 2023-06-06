@@ -2,45 +2,19 @@ import { PrismaClient } from "@prisma/client";
 import inquirer from "inquirer";
 import logger from "../configs/logger.config";
 import chalk from "chalk";
-import { dotenvConfig } from "../configs/vars.config";
+import { DB_AUTOINC_COLOUMNS, dotenvConfig } from "../configs/vars.config";
+import _ from "lodash";
 
 dotenvConfig;
 
 const prisma = new PrismaClient();
 
-const DB_AUTOINC_COLOUMNS: {
-  table: string;
-  columns: { name: string; prefix: string }[];
-}[] = [
-  {
-    table: "tb_users",
-    columns: [{ name: "user_id", prefix: "USR" }],
-  },
-  {
-    table: "tb_customer_levels",
-    columns: [{ name: "cs_level_id", prefix: "CSLVL" }],
-  },
-  {
-    table: "tb_customers",
-    columns: [{ name: "customer_id", prefix: "CSMR" }],
-  },
-  {
-    table: "tb_services",
-    columns: [{ name: "service_id", prefix: "LSRV" }],
-  },
-  {
-    table: "tb_laundries",
-    columns: [{ name: "laundry_id", prefix: "LDRY" }],
-  },
-  {
-    table: "tb_laundry_queues",
-    columns: [{ name: "laundry_queue_id", prefix: "LQU" }],
-  },
-  {
-    table: "tb_laundry_rooms",
-    columns: [{ name: "laundry_room_id", prefix: "LDRM" }],
-  },
-];
+interface IConfig {
+  id?: number;
+  tbName: string;
+  field: string;
+  prefix: string;
+}
 
 const main = async () => {
   logger.info("[DATABASE] setup database...");
@@ -104,48 +78,93 @@ const main = async () => {
     }
   }
 
-  for (const autoIncCfgItem of autoIncrementConfigs) {
-    const exists = await prisma.autoIncrement.findMany({
+  const updatedData: IConfig[] = [];
+  const newData: IConfig[] = [];
+
+  for (const item of autoIncrementConfigs) {
+    const isAvailable = await prisma.autoIncrement.findMany({
       where: {
-        tbName: autoIncCfgItem.tbName,
-        field: autoIncCfgItem.field,
+        tbName: item.tbName,
+        field: item.field,
       },
     });
-    const fieldTxt = chalk.bold(autoIncCfgItem.field);
-    const tbTxt = chalk.bold(autoIncCfgItem.tbName);
-    if (exists.length === 0) {
-      console.log("");
-      logger.warn(
-        `[DATABASE] Column ${fieldTxt} with table ${tbTxt} does'nt and it will added...`
-      );
-      await prisma.autoIncrement.create({ data: autoIncCfgItem });
-      logger.warn(
-        `[DATABASE] Successfully added column ${fieldTxt} with table ${tbTxt}`
-      );
-    } else {
-      console.log("");
-      const resetValueConfirm = await inquirer.prompt({
-        type: "confirm",
-        name: "isResetValue",
-        message: `Column ${fieldTxt} with table ${tbTxt} already exist so wanna reset the value?`,
-        default: false,
-      });
 
-      await prisma.autoIncrement.update({
-        where: { id: exists[0].id },
+    if (isAvailable.length !== 0) {
+      updatedData.push({ id: isAvailable[0].id, ...item });
+    } else {
+      newData.push({ ...item });
+    }
+  }
+
+  if (updatedData.length !== 0) {
+    logger.info("[DATABASE] Some data is already exits in the database");
+    console.log("");
+    const { selectedUpdatedData } = (await inquirer.prompt({
+      type: "checkbox",
+      message:
+        "Select the data that is available if you want to reset the value:",
+      name: "selectedUpdatedData",
+      choices: updatedData.map(item => ({
+        name: ` Table "${item.tbName}" | Column "${chalk.bold(
+          item.field
+        )}" | Prefix = ${item.prefix}`,
+        value: item,
+      })),
+    })) as { selectedUpdatedData: IConfig[] };
+
+    if (selectedUpdatedData.length !== 0) {
+      for (const item of selectedUpdatedData) {
+        await prisma.autoIncrement.update({
+          where: { id: item.id },
+          data: {
+            field: item.field,
+            tbName: item.tbName,
+            prefix: item.prefix,
+            value: 0,
+          },
+        });
+
+        logger.warn(
+          `[DATABASE] Successfully update Column ${item.field} with table ${item.tbName}`
+        );
+      }
+    }
+
+    logger.info(selectedUpdatedData, "UPDATED SELECTED");
+  }
+
+  if (newData.length !== 0) {
+    for (const newItem of newData) {
+      await prisma.autoIncrement.create({
         data: {
-          ...autoIncCfgItem,
-          value: resetValueConfirm.isResetValue ? 1 : exists[0].value,
+          tbName: newItem.tbName,
+          prefix: newItem.prefix,
+          field: newItem.field,
         },
       });
-
       logger.warn(
-        `[DATABASE] Successfully update column ${fieldTxt} with table ${tbTxt}`
+        `[DATABASE] Successfully added column ${newItem.field} with table ${newItem.tbName}`
       );
     }
   }
-  console.log("");
 
+  const mapConfig = DB_AUTOINC_COLOUMNS.flatMap(item =>
+    item.columns.map(field => ({
+      table: item.table,
+      field: field.name,
+      prefix: field.prefix,
+    }))
+  );
+  console.log(`
+\`\`\`
+export type IncTablesNameTypes = ${mapConfig
+    .map(i => `\"${i.table}\"`)
+    .join(" | ")};
+export type IncTablesFieldTypes = ${mapConfig
+    .map(i => `\"${i.field}\"`)
+    .join(" | ")};
+\`\`\``);
+  console.log("");
   logger.info("[DATABASE] setup database successfully");
 };
 
