@@ -1,4 +1,4 @@
-import { Prisma, LaundryQueue, Laundry } from "@prisma/client";
+import { Prisma, LaundryQueue, LaundryItem, Customer } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { replacerBigIntToNumber } from "../../utils/utils";
@@ -131,25 +131,42 @@ class LaundryQueueService extends BaseService {
     }
   }
 
-  public async update(
+  public async updateDelivered(
     id: string,
-    data: Omit<ILaundryQueueInput, "laundryQueueId" | "customerId" | "userId">
+    customerId: string
   ): Promise<LaundryQueue | undefined> {
     try {
-      const result = await this.prisma.laundryQueue.update({
-        where: { laundryQueueId: id },
-        data,
+      const result = this.prisma.$transaction(async tx => {
+        const updatedLaundryQueue = await tx.laundryQueue.update({
+          where: { laundryQueueId: id },
+          data: {
+            deliveryAt: dateIndoWIB().toDate(),
+          },
+        });
+        const customer = await tx.customer.findUnique({
+          where: { customerId: customerId },
+          include: { customerLevel: true },
+        });
+
+        const updateCustomer = await tx.customer.update({
+          where: { customerId: customer?.customerId },
+          data: {
+            point:
+              Number(customer?.point) + Number(customer?.customerLevel?.point),
+          },
+        });
+        return { laundryQueue: updatedLaundryQueue, customer: updateCustomer };
       });
       return replacerBigIntToNumber(result);
     } catch (error) {
-      this.logger.error("[EXCEPTION] updateLaundryQueue");
+      this.logger.error("[EXCEPTION] updateDelivered");
       this.throwError(error);
     }
   }
 
   public async delete(id: string): Promise<LaundryQueue | undefined> {
     try {
-      const deleteLaundries = this.prisma.laundry.deleteMany({
+      const deleteLaundries = this.prisma.laundryItem.deleteMany({
         where: { laundryQueueId: id },
       });
       const deleteLaundryRoom = this.prisma.laundryRoom.delete({
@@ -159,10 +176,6 @@ class LaundryQueueService extends BaseService {
         where: { laundryQueueId: id },
       });
 
-      // const result = await this.prisma.laundryQueue.delete({ where: {laundryQueueId: id}, include :{
-      //   laundries: true,
-      //   laundryRooms: true
-      // } });
       const result = await this.prisma.$transaction([
         deleteLaundries,
         deleteLaundryRoom,

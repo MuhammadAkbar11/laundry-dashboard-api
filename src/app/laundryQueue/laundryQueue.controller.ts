@@ -14,17 +14,19 @@ import {
   DeleteLaundryQueuePayload,
   ReadByIDLaundryQueuePayload,
   ReadLaundryQueuePayload,
-  UpdateLaundryQueuePayload,
+  UpdateLaundryQueueDeliveredPayload,
 } from "./laundryQueue.schema";
 import { dateIndoWIB } from "../../configs/date.config";
 import CustomerService from "../customer/customer.service";
 import { isNumericQuery } from "../../utils/utils";
 import { SortingTypes } from "../../utils/types/types";
+import LaundryItemService from "../laundryItem/laundryItem.service";
 
 @BindAllMethods
 class LaundryQueueController extends BaseController {
   private readonly service = new LaundryQueueService();
   private readonly customerService = new CustomerService();
+  private readonly laundryItemService = new LaundryItemService();
 
   constructor() {
     super();
@@ -103,7 +105,6 @@ class LaundryQueueController extends BaseController {
             },
           },
           { customerId: { contains: _search } },
-          { userId: { contains: _search } },
           { userId: { contains: _search } },
           {
             customer: {
@@ -229,30 +230,18 @@ class LaundryQueueController extends BaseController {
     }
   }
 
-  public async put(
-    req: Request<
-      UpdateLaundryQueuePayload["params"],
-      {},
-      UpdateLaundryQueuePayload["body"]
-    >,
+  public async putDelivered(
+    req: Request<UpdateLaundryQueueDeliveredPayload["params"], {}, {}>,
     res: Response,
     next: NextFunction
   ) {
     const laundryQueueIdParam = req.params.laundryQueueId as string;
 
     try {
-      const {
-        queuePaymentStatus,
-        status,
-        finishedAt,
-        deliveryAt,
-        note,
-        deliveryType,
-      } = req.body;
-
-      const existingLaundryQueue = await this.service.getById(
-        laundryQueueIdParam
-      );
+      const existingLaundryQueue = await this.prisma.laundryQueue.findUnique({
+        where: { laundryQueueId: laundryQueueIdParam },
+        include: { laundries: true },
+      });
 
       if (!existingLaundryQueue) {
         throw this.error(
@@ -266,23 +255,32 @@ class LaundryQueueController extends BaseController {
         );
       }
 
-      const updatedLaundryQueue = await this.service.update(
+      if (existingLaundryQueue?.queuePaymentStatus === "FINISHED") {
+        throw this.error(
+          "NOT_FOUND",
+          400,
+          `Gagal memperbaharui status ${
+            existingLaundryQueue.deliveryType === "PICKUP"
+              ? "pengambilan"
+              : "pengantaran"
+          } Antrian "${laundryQueueIdParam}", karena belum melakukan pembayaran`
+        );
+      }
+
+      if (existingLaundryQueue?.laundries?.length === 0) {
+        throw this.error(
+          "BAD_REQUEST",
+          this.methodStatus.BAD_REQUEST,
+          `Belum ada cucian untuk Antrian '${laundryQueueIdParam}'. Silahkan tambahkan cucian terlebih dahulu`
+        );
+      }
+
+      const updatedLaundryQueue = await this.service.updateDelivered(
         laundryQueueIdParam,
-        {
-          queuePaymentStatus:
-            (queuePaymentStatus as LaundryQueuePaymentStatus) ||
-            existingLaundryQueue.queuePaymentStatus,
-          status: (status as LaundryQueueStatus) || existingLaundryQueue.status,
-          finishedAt:
-            dateIndoWIB(finishedAt).toDate() || existingLaundryQueue.finishedAt,
-          deliveryAt:
-            dateIndoWIB(deliveryAt).toDate() || existingLaundryQueue.deliveryAt,
-          deliveryType: deliveryType || "PICKUP",
-          note: note,
-        }
+        existingLaundryQueue.customerId
       );
 
-      res.status(200).json({
+      res.status(201).json({
         message: this.getSuccessMessage(
           "update",
           "Antrian",
@@ -328,6 +326,52 @@ class LaundryQueueController extends BaseController {
           laundryQueueIdParam
         ),
         laundryQueue: deletedLaundryQueue,
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async getLaundryItems(
+    req: Request<ReadByIDLaundryQueuePayload["params"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    const laundryQueueIdParam = req.params.laundryQueueId as string;
+
+    try {
+      const laundryQueue = await this.service.getByIdWithInclude(
+        laundryQueueIdParam
+      );
+
+      if (!laundryQueue) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage(
+            "readByIdNotFound",
+            "Antrian",
+            laundryQueueIdParam
+          )
+        );
+      }
+
+      const laundries = await this.laundryItemService.getAll({
+        where: {
+          laundryQueueId: laundryQueueIdParam,
+        },
+        include: {
+          historyService: true,
+        },
+      });
+
+      res.status(200).json({
+        message: this.getSuccessMessage(
+          "readById",
+          "Cucian dari Antrian",
+          laundryQueueIdParam
+        ),
+        laundries,
       });
     } catch (error: any) {
       this.nextError(next, error);

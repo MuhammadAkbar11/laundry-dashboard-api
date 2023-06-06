@@ -22,15 +22,7 @@ export const createLaundryQueueSchema = z.object({
     ),
 });
 
-export const updateLaundryQueueSchema = z.object({
-  body: z.object({
-    queuePaymentStatus: z.enum(["PENDING", "PAID", "CANCELLED"]).optional(),
-    status: z.enum(["ONHOLD", "IN_PROGRESS", "FINISHED"]).optional(),
-    deliveryType: z.enum(["DELIVERED", "PICKUP"]).optional(),
-    finishedAt: z.string().optional(),
-    deliveryAt: z.string().optional(),
-    note: z.string(),
-  }),
+export const updateLaundryQueueDeliveredSchema = z.object({
   params: z.object({
     laundryQueueId: z.string().max(21),
   }),
@@ -64,15 +56,18 @@ export const readLaundryQueueSchema = z.object({
 
 export const readByIDLaundryQueueSchema = z.object({
   params: z.object({
-    laundryQueueId: z.string().max(21),
+    laundryQueueId: z
+      .string()
+      .nonempty("Laundry queue ID is required")
+      .max(21, "Laundry queue ID should not exceed 21 characters"),
   }),
 });
 
 export type CreateLaundryQueuePayload = z.infer<
   typeof createLaundryQueueSchema
 >;
-export type UpdateLaundryQueuePayload = z.infer<
-  typeof updateLaundryQueueSchema
+export type UpdateLaundryQueueDeliveredPayload = z.infer<
+  typeof updateLaundryQueueDeliveredSchema
 >;
 export type DeleteLaundryQueuePayload = z.infer<
   typeof deleteLaundryQueueSchema

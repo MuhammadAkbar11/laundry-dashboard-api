@@ -7,7 +7,8 @@ import {
   createLaundryQueueSchema,
   deleteLaundryQueueSchema,
   readByIDLaundryQueueSchema,
-  updateLaundryQueueSchema,
+  readLaundryQueueSchema,
+  // updateLaundryQueueSchema,
 } from "./laundryQueue.schema";
 import { requiredUser } from "../../middlewares/auth.middleware";
 
@@ -20,23 +21,40 @@ class LaundryQueueRouter extends BaseRouter<LaundryQueueController> {
   protected routes(): void {
     this.router
       .route("/")
-      .get(this.controller.get)
+      .get(
+        requiredUser,
+        [validateResource(readLaundryQueueSchema)],
+        this.controller.get
+      )
       .post(
         requiredUser,
         [validateResource(createLaundryQueueSchema)],
         this.controller.post
       );
-
     this.router
       .route("/:laundryQueueId")
       .get(
+        requiredUser,
         [validateResource(readByIDLaundryQueueSchema)],
         this.controller.getId
       )
-      .put([validateResource(updateLaundryQueueSchema)], this.controller.put)
+      // .put(
+      //   requiredUser,
+      //   [validateResource(updateLaundryQueueSchema)],
+      //   this.controller.put
+      // )
       .delete(
+        requiredUser,
         [validateResource(deleteLaundryQueueSchema)],
         this.controller.delete
+      );
+
+    this.router
+      .route("/:laundryQueueId/laundries")
+      .get(
+        requiredUser,
+        [validateResource(readByIDLaundryQueueSchema)],
+        this.controller.getLaundryItems
       );
   }
 }
