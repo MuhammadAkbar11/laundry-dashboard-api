@@ -81,7 +81,7 @@ export async function deserializeUser(
       );
 
       if (!session) {
-        logger.warn("[SESSION] Session not found (!accessToken)");
+        logger.warn("[SESSION] Session not found");
         return next();
       }
 
@@ -203,6 +203,7 @@ export function requiredUser(
   const user = req.user;
   if (!user) {
     return res.status(403).json({
+      name: "NOT_AUTH",
       message: "Not authorized!",
     });
   }
