@@ -19,15 +19,13 @@ export const updateCustomerSchema = z.object({
   body: z.object({
     name: z
       .string()
-      .max(255, { message: "Name should not exceed 255 characters" })
-      .optional(),
+      .max(255, { message: "Name should not exceed 255 characters" }),
     address: z.string().optional(),
     phone: z.string().optional(),
-    customerLevelId: z
-      .string()
-      .max(21, { message: "Customer level ID should not exceed 21 characters" })
-      .optional(),
-    point: z.number().int().optional(),
+    customerLevelId: z.string().max(21, {
+      message: "Customer level ID should not exceed 21 characters",
+    }),
+    point: z.number().int(),
   }),
   params: z.object({
     customerId: z

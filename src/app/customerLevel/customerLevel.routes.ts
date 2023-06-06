@@ -9,6 +9,7 @@ import {
   readCustomerLevelSchema,
   updateCustomerLevelSchema,
 } from "./customerLevel.schema";
+import { requiredUser } from "../../middlewares/auth.middleware";
 
 @BindAllMethods
 class CustomerLevelRouter extends BaseRouter<CustomerLevelController> {
@@ -19,16 +20,26 @@ class CustomerLevelRouter extends BaseRouter<CustomerLevelController> {
   protected routes(): void {
     this.router
       .route("/")
-      .get(this.controller.get)
+      .get(requiredUser, this.controller.get)
       .post(
+        requiredUser,
         [validateResource(createCustomerLevelSchema)],
         this.controller.post
       );
     this.router
       .route("/:customerLevelId")
-      .get([validateResource(readCustomerLevelSchema)], this.controller.getId)
-      .put([validateResource(updateCustomerLevelSchema)], this.controller.put)
+      .get(
+        requiredUser,
+        [validateResource(readCustomerLevelSchema)],
+        this.controller.getId
+      )
+      .put(
+        requiredUser,
+        [validateResource(updateCustomerLevelSchema)],
+        this.controller.put
+      )
       .delete(
+        requiredUser,
         [validateResource(deleteCustomerLevelSchema)],
         this.controller.delete
       );
