@@ -27,7 +27,22 @@ class LaundryServiceController extends BaseController {
     next: NextFunction
   ) {
     try {
-      const { _search, _page = 1, _limit = 10, _orderBy, _sortBy } = req.query;
+      const {
+        _search,
+        _page = 1,
+        _limit = 10,
+        _orderBy,
+        _sortBy,
+        _isFiltered,
+      } = req.query;
+
+      if (!_isFiltered) {
+        const result = await this.service.getAll();
+        return res.status(200).json({
+          message: this.getSuccessMessage("read", "Layanan"),
+          laundryService: result,
+        });
+      }
 
       let where: Prisma.ServiceWhereInput = {};
 

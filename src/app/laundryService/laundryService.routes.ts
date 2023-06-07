@@ -7,8 +7,10 @@ import {
   createLaundryServiceSchema,
   deleteLaundryServiceSchema,
   getByIdLaundryServiceSchema,
+  getLaundryServiceSchema,
   updateLaundryServiceSchema,
 } from "./laundryService.schema";
+import { requiredUser } from "../../middlewares/auth.middleware";
 
 @BindAllMethods
 class LaundryServiceRouter extends BaseRouter<LaundryServiceController> {
@@ -19,8 +21,13 @@ class LaundryServiceRouter extends BaseRouter<LaundryServiceController> {
   protected routes(): void {
     this.router
       .route("/")
-      .get(this.controller.get)
+      .get(
+        requiredUser,
+        [validateResource(getLaundryServiceSchema)],
+        this.controller.get
+      )
       .post(
+        // requiredUser,
         [validateResource(createLaundryServiceSchema)],
         this.controller.post
       );
@@ -28,11 +35,17 @@ class LaundryServiceRouter extends BaseRouter<LaundryServiceController> {
     this.router
       .route("/:serviceId")
       .get(
+        requiredUser,
         [validateResource(getByIdLaundryServiceSchema)],
         this.controller.getById
       )
-      .put([validateResource(updateLaundryServiceSchema)], this.controller.put)
+      .put(
+        requiredUser,
+        [validateResource(updateLaundryServiceSchema)],
+        this.controller.put
+      )
       .delete(
+        requiredUser,
         [validateResource(deleteLaundryServiceSchema)],
         this.controller.delete
       );
