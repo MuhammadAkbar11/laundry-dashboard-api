@@ -102,7 +102,7 @@ export function objHasKey<O>(
   return obj !== null ? Object.prototype.hasOwnProperty.call(obj, key) : false;
 }
 
-export function replacerBigIntToNumber(obj: any) {
+export function parsingResult(obj: any) {
   const stringifyObj = JSON.stringify(obj, (_, v) =>
     typeof v === "bigint" ? v.toString() : v
   );
