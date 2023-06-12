@@ -8,6 +8,7 @@ import {
   ReadCustomerLevelPayload,
   UpdateCustomerLevelPayload,
 } from "./customerLevel.schema";
+import { parsingResult } from "../../utils/utils";
 
 @BindAllMethods
 class CustomerLevelController extends BaseController {
@@ -23,7 +24,7 @@ class CustomerLevelController extends BaseController {
 
       res.status(200).json({
         message: this.getSuccessMessage("read", "Level Pelanggan"),
-        levels: levels,
+        levels: parsingResult(levels),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -58,7 +59,7 @@ class CustomerLevelController extends BaseController {
           "Level Pelanggan",
           customerLvlIdParam
         ),
-        level: customerLvl,
+        level: parsingResult(customerLvl),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -78,7 +79,7 @@ class CustomerLevelController extends BaseController {
 
       res.status(200).json({
         message: this.getSuccessMessage("create", "Level Pelanggan"),
-        level: newCustomerLevel,
+        level: parsingResult(newCustomerLevel),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -123,7 +124,7 @@ class CustomerLevelController extends BaseController {
 
       res.status(200).json({
         message: this.getSuccessMessage("update", "Level Pelanggan"),
-        level: newLevel,
+        level: parsingResult(newLevel),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -164,7 +165,7 @@ class CustomerLevelController extends BaseController {
           "Level Pelanggan",
           customerLvlIdParam
         ),
-        level: deletedLevel,
+        level: parsingResult(deletedLevel),
       });
     } catch (error: any) {
       this.nextError(next, error);

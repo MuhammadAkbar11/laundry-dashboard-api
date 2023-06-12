@@ -1,7 +1,6 @@
 import { CustomerLevel, Prisma } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
-import { replacerBigIntToNumber } from "../../utils/utils";
 
 export interface ICustomerLevelInput
   extends Omit<CustomerLevel, "createdAt" | "updatedAt" | "customers"> {
@@ -23,7 +22,7 @@ class CustomerLevelService extends BaseService {
     try {
       const data = await this.prisma.customerLevel.findMany({});
 
-      return replacerBigIntToNumber(data);
+      return data;
     } catch (error) {
       this.logger.error(`[EXCEPTION] getAllCustomerLevels`);
       this.throwError(error);
@@ -36,7 +35,7 @@ class CustomerLevelService extends BaseService {
         where: { customerLevelId: id },
       });
 
-      return replacerBigIntToNumber(data);
+      return data;
     } catch (error) {
       this.logger.error(`[EXCEPTION] getCustomerLevelById`);
       this.throwError(error);
@@ -56,7 +55,7 @@ class CustomerLevelService extends BaseService {
       };
 
       const result = await this.prisma.customerLevel.create({ data });
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error(`[EXCEPTION] createCustomerLevel`);
       this.throwError(error);
@@ -73,7 +72,7 @@ class CustomerLevelService extends BaseService {
         data,
       });
 
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error(`[EXCEPTION] updateCustomerLevel`);
       this.throwError(error);
@@ -85,7 +84,7 @@ class CustomerLevelService extends BaseService {
       const result = await this.prisma.customerLevel.delete({
         where: { customerLevelId: id },
       });
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error(`[EXCEPTION] deleteCustomerLevel`);
       this.throwError(error);
