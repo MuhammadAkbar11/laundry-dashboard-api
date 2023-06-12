@@ -1,9 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { Prisma } from "@prisma/client";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseController } from "../../core";
-
-import { SortingTypes } from "../../utils/types/types";
 import LaundryItemService from "./laundryItem.service";
 import {
   CreateLaundryItemPayload,
@@ -11,6 +8,7 @@ import {
   ReadByIDLaundryItemPayload,
   UpdateLaundryItemPayload,
 } from "./laundryItem.schema";
+import { parsingResult } from "../../utils/utils";
 
 @BindAllMethods
 class LaundryItemController extends BaseController {
@@ -40,7 +38,7 @@ class LaundryItemController extends BaseController {
 
       return res.status(200).json({
         message: this.getSuccessMessage("readById", "Cucian", laundryItemId),
-        laundryItem: result,
+        laundryItem: parsingResult(result),
       });
     } catch (error) {
       return next(error);
@@ -97,7 +95,7 @@ class LaundryItemController extends BaseController {
 
       return res.status(200).json({
         message: this.getSuccessMessage("create", "Cucian"),
-        data: result,
+        data: parsingResult(result),
       });
     } catch (error) {
       return next(error);
@@ -148,7 +146,7 @@ class LaundryItemController extends BaseController {
 
       return res.status(200).json({
         message: this.getSuccessMessage("update", "Cucian", laundryItemId),
-        laundryItem: result,
+        laundryItem: parsingResult(result),
       });
     } catch (error) {
       return next(error);
@@ -179,7 +177,7 @@ class LaundryItemController extends BaseController {
 
       return res.status(200).json({
         message: this.getSuccessMessage("delete", "Cucian", laundryItemId),
-        laundryItem: result,
+        laundryItem: parsingResult(result),
       });
     } catch (error) {
       return next(error);
