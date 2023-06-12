@@ -213,6 +213,7 @@ model Setting {
 
 model HistoryService {
   historyServiceId String        @id @map("history_service_id") @db.VarChar(25)
+  serviceId        String        @map("service_id") @db.VarChar(21)
   name             String        @db.VarChar(128)
   description      String        @db.Text
   unit             ServiceUnit
