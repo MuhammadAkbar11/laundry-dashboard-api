@@ -1,7 +1,6 @@
 import { Prisma, Service } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
-import { replacerBigIntToNumber } from "../../utils/utils";
 
 export interface IServiceInput
   extends Omit<Service, "serviceId" | "createdAt" | "updatedAt" | "laundries"> {
@@ -23,8 +22,7 @@ class LaundryServiceService extends BaseService {
     options?: Prisma.ServiceFindManyArgs
   ): Promise<Service[] | void> {
     try {
-      const data = await this.prisma.service.findMany(options);
-      return replacerBigIntToNumber(data);
+      return await this.prisma.service.findMany(options);
     } catch (error) {
       this.logger.error("[EXCEPTION] getAllLaundryServices");
       this.throwError(error);
@@ -33,10 +31,9 @@ class LaundryServiceService extends BaseService {
 
   public async getById(id: string): Promise<Service | void | null> {
     try {
-      const data = await this.prisma.service.findUnique({
+      return await this.prisma.service.findUnique({
         where: { serviceId: id },
       });
-      return replacerBigIntToNumber(data);
     } catch (error) {
       this.logger.error("[EXCEPTION] getLaundryServiceById");
       this.throwError(error);
@@ -45,8 +42,7 @@ class LaundryServiceService extends BaseService {
 
   public async count(args?: Prisma.ServiceCountArgs) {
     try {
-      const data = await this.prisma.service.count({ ...args });
-      return replacerBigIntToNumber(data);
+      return await this.prisma.service.count({ ...args });
     } catch (error) {
       this.logger.error("[EXCEPTION] countLaundryService");
       this.throwError(error);
@@ -65,8 +61,7 @@ class LaundryServiceService extends BaseService {
         unit: input.unit,
         price: input.price,
       };
-      const result = await this.prisma.service.create({ data });
-      return replacerBigIntToNumber(result);
+      return await this.prisma.service.create({ data });
     } catch (error) {
       this.logger.error("[EXCEPTION] createLaundryService");
       this.throwError(error);
@@ -78,11 +73,10 @@ class LaundryServiceService extends BaseService {
     data: Omit<IServiceInput, "serviceId">
   ): Promise<Service | undefined> {
     try {
-      const result = await this.prisma.service.update({
+      return await this.prisma.service.update({
         where: { serviceId: id },
         data,
       });
-      return replacerBigIntToNumber(result);
     } catch (error) {
       this.logger.error("[EXCEPTION] updateLaundryService");
       this.throwError(error);
@@ -91,10 +85,9 @@ class LaundryServiceService extends BaseService {
 
   public async delete(id: string): Promise<Service | undefined> {
     try {
-      const result = await this.prisma.service.delete({
+      return await this.prisma.service.delete({
         where: { serviceId: id },
       });
-      return replacerBigIntToNumber(result);
     } catch (error) {
       this.logger.error("[EXCEPTION] deleteLaundryService");
       this.throwError(error);

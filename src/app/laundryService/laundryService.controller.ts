@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { Service as LaundryService, Prisma, ServiceUnit } from "@prisma/client";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseController } from "../../core";
-
 import Pagination from "../../helpers/pagination.helper";
 import LaundryServiceService from "./laundryService.service";
 import {
@@ -12,6 +11,7 @@ import {
   GetLaundryServicePayload,
   UpdateLaundryServicePayload,
 } from "./laundryService.schema";
+import { parsingResult } from "../../utils/utils";
 
 @BindAllMethods
 class LaundryServiceController extends BaseController {
@@ -37,10 +37,14 @@ class LaundryServiceController extends BaseController {
       } = req.query;
 
       if (!_isFiltered) {
-        const result = await this.service.getAll();
+        const result = await this.service.getAll({
+          orderBy: {
+            name: "asc",
+          },
+        });
         return res.status(200).json({
           message: this.getSuccessMessage("read", "Layanan"),
-          laundryService: result,
+          laundryService: parsingResult(result),
         });
       }
 
@@ -71,7 +75,7 @@ class LaundryServiceController extends BaseController {
         take: limit,
       });
 
-      const totalServices = await this.service.count({ where });
+      const totalServices = (await this.service.count({ where })) as number;
 
       const data = paginated.getPagingData(
         totalServices,
@@ -80,7 +84,7 @@ class LaundryServiceController extends BaseController {
 
       res.status(200).json({
         message: this.getSuccessMessage("read", "Laundry Services"),
-        data: { search: _search, ...data },
+        data: { search: _search, ...parsingResult(data) },
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -115,7 +119,7 @@ class LaundryServiceController extends BaseController {
           "Laundry Service",
           serviceIdParam
         ),
-        service,
+        service: parsingResult(service),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -139,7 +143,7 @@ class LaundryServiceController extends BaseController {
 
       res.status(201).json({
         message: this.getSuccessMessage("create", "Laundry Service"),
-        service: newService,
+        service: parsingResult(newService),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -187,7 +191,7 @@ class LaundryServiceController extends BaseController {
           "Laundry Service",
           serviceIdParam
         ),
-        service: updatedService,
+        service: parsingResult(updatedService),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -224,7 +228,7 @@ class LaundryServiceController extends BaseController {
           "Laundry Service",
           serviceIdParam
         ),
-        service: deletedService,
+        service: parsingResult(deletedService),
       });
     } catch (error: any) {
       this.nextError(next, error);
