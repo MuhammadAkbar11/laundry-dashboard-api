@@ -1,7 +1,12 @@
-import { Prisma, LaundryQueue, LaundryItem, Customer } from "@prisma/client";
+import {
+  Prisma,
+  LaundryQueue,
+  LaundryItem,
+  Customer,
+  LaundryRoom,
+} from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
-import { replacerBigIntToNumber } from "../../utils/utils";
 import _ from "lodash";
 import { dateIndoWIB } from "../../configs/date.config";
 
@@ -23,8 +28,7 @@ class LaundryQueueService extends BaseService {
     options?: Prisma.LaundryQueueFindManyArgs
   ): Promise<LaundryQueue[] | void> {
     try {
-      const data = await this.prisma.laundryQueue.findMany(options);
-      return replacerBigIntToNumber(data);
+      return await this.prisma.laundryQueue.findMany(options);
     } catch (error) {
       this.logger.error("[EXCEPTION] getAllLaundryQueues");
       this.throwError(error);
@@ -33,10 +37,9 @@ class LaundryQueueService extends BaseService {
 
   public async getById(id: string): Promise<LaundryQueue | void | null> {
     try {
-      const data = await this.prisma.laundryQueue.findUnique({
+      return await this.prisma.laundryQueue.findUnique({
         where: { laundryQueueId: id },
       });
-      return replacerBigIntToNumber(data);
     } catch (error) {
       this.logger.error("[EXCEPTION] getLaundryQueueById");
       this.throwError(error);
@@ -47,7 +50,7 @@ class LaundryQueueService extends BaseService {
     id: string
   ): Promise<LaundryQueue | void | null> {
     try {
-      const data = await this.prisma.laundryQueue.findUnique({
+      return await this.prisma.laundryQueue.findUnique({
         where: { laundryQueueId: id },
         include: {
           customer: true,
@@ -59,17 +62,17 @@ class LaundryQueueService extends BaseService {
           },
         },
       });
-      return replacerBigIntToNumber(data);
     } catch (error) {
       this.logger.error("[EXCEPTION] getLaundryQueueById");
       this.throwError(error);
     }
   }
 
-  public async count(args?: Prisma.LaundryQueueCountArgs) {
+  public async count(
+    args?: Prisma.LaundryQueueCountArgs
+  ): Promise<number | undefined> {
     try {
-      const data = await this.prisma.laundryQueue.count({ ...args });
-      return replacerBigIntToNumber(data);
+      return await this.prisma.laundryQueue.count({ ...args });
     } catch (error) {
       this.logger.error("[EXCEPTION] countLaundryQueue");
       this.throwError(error);
@@ -81,7 +84,14 @@ class LaundryQueueService extends BaseService {
       ILaundryQueueInput,
       "laundryQueueId" | "deliveryAt" | "finishedAt"
     >
-  ): Promise<LaundryQueue | void | null> {
+  ): Promise<
+    | {
+        laundryRoom: LaundryRoom;
+        laundryQueue: LaundryQueue;
+      }
+    | null
+    | undefined
+  > {
     try {
       const result = await this.prisma.$transaction(async tx => {
         const laundryQueueId = await this.createPrimaryKeyValue(tx);
@@ -123,8 +133,7 @@ class LaundryQueueService extends BaseService {
         };
       });
 
-      // const result = await this.prisma.laundryQueue.create({ data });
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] createLaundryQueue");
       this.throwError(error);
@@ -134,7 +143,14 @@ class LaundryQueueService extends BaseService {
   public async updateDelivered(
     id: string,
     customerId: string
-  ): Promise<LaundryQueue | undefined> {
+  ): Promise<
+    | {
+        customer: Customer;
+        laundryQueue: LaundryQueue;
+      }
+    | null
+    | undefined
+  > {
     try {
       const result = this.prisma.$transaction(async tx => {
         const updatedLaundryQueue = await tx.laundryQueue.update({
@@ -157,31 +173,30 @@ class LaundryQueueService extends BaseService {
         });
         return { laundryQueue: updatedLaundryQueue, customer: updateCustomer };
       });
-      return replacerBigIntToNumber(result);
+
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] updateDelivered");
       this.throwError(error);
     }
   }
 
-  public async delete(id: string): Promise<LaundryQueue | undefined> {
+  public async delete(id: string) {
     try {
-      const deleteLaundries = this.prisma.laundryItem.deleteMany({
-        where: { laundryQueueId: id },
-      });
-      const deleteLaundryRoom = this.prisma.laundryRoom.delete({
-        where: { laundryQueueId: id },
-      });
-      const deleteLaundryQueue = this.prisma.laundryQueue.delete({
-        where: { laundryQueueId: id },
-      });
+      const result = await this.prisma.$transaction(async tx => {
+        const deleteLaundries = await tx.laundryItem.deleteMany({
+          where: { laundryQueueId: id },
+        });
+        const deleteLaundryRoom = await tx.laundryRoom.delete({
+          where: { laundryQueueId: id },
+        });
+        const deleteLaundryQueue = await tx.laundryQueue.delete({
+          where: { laundryQueueId: id },
+        });
 
-      const result = await this.prisma.$transaction([
-        deleteLaundries,
-        deleteLaundryRoom,
-        deleteLaundryQueue,
-      ]);
-      return replacerBigIntToNumber(result);
+        return { deleteLaundries, deleteLaundryRoom, deleteLaundryQueue };
+      });
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] deleteLaundryQueue");
       this.throwError(error);

@@ -16,9 +16,8 @@ import {
   ReadLaundryQueuePayload,
   UpdateLaundryQueueDeliveredPayload,
 } from "./laundryQueue.schema";
-import { dateIndoWIB } from "../../configs/date.config";
 import CustomerService from "../customer/customer.service";
-import { isNumericQuery } from "../../utils/utils";
+import { isNumericQuery, parsingResult } from "../../utils/utils";
 import { SortingTypes } from "../../utils/types/types";
 import LaundryItemService from "../laundryItem/laundryItem.service";
 
@@ -142,13 +141,15 @@ class LaundryQueueController extends BaseController {
         },
       })) as LaundryQueue[];
 
-      const totalLaundryQueues = await this.service.count({ where });
+      const totalLaundryQueues = (await this.service.count({
+        where,
+      })) as number;
 
       const data = paginated.getPagingData(totalLaundryQueues, laundryQueues);
 
       res.status(200).json({
         message: this.getSuccessMessage("read", "Antrian"),
-        data: { search: _search, ...data },
+        data: { search: _search, ...parsingResult(data) },
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -185,7 +186,7 @@ class LaundryQueueController extends BaseController {
           "Antrian",
           laundryQueueIdParam
         ),
-        laundryQueue,
+        laundryQueue: parsingResult(laundryQueue),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -223,7 +224,7 @@ class LaundryQueueController extends BaseController {
 
       res.status(201).json({
         message: this.getSuccessMessage("create", "Antrian"),
-        laundryQueue: newQueue,
+        laundryQueue: parsingResult(newQueue),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -286,7 +287,7 @@ class LaundryQueueController extends BaseController {
           "Antrian",
           laundryQueueIdParam
         ),
-        laundryQueue: updatedLaundryQueue,
+        laundryQueue: parsingResult(updatedLaundryQueue),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -325,7 +326,7 @@ class LaundryQueueController extends BaseController {
           "Antrian",
           laundryQueueIdParam
         ),
-        laundryQueue: deletedLaundryQueue,
+        laundryQueue: parsingResult(deletedLaundryQueue),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -371,7 +372,7 @@ class LaundryQueueController extends BaseController {
           "Cucian dari Antrian",
           laundryQueueIdParam
         ),
-        laundries,
+        laundries: parsingResult(laundries),
       });
     } catch (error: any) {
       this.nextError(next, error);
