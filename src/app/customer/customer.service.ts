@@ -1,7 +1,6 @@
 import { Customer, Prisma } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
-import { replacerBigIntToNumber } from "../../utils/utils";
 
 export interface ICustomerInput
   extends Omit<
@@ -24,8 +23,8 @@ class CustomerService extends BaseService {
     options?: Prisma.CustomerFindManyArgs
   ): Promise<Customer[] | void> {
     try {
-      const data = await this.prisma.customer.findMany(options);
-      return replacerBigIntToNumber(data);
+      const result = await this.prisma.customer.findMany(options);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] getAllCustomers");
       this.throwError(error);
@@ -34,8 +33,8 @@ class CustomerService extends BaseService {
 
   public async count(args?: Prisma.CustomerCountArgs) {
     try {
-      const data = await this.prisma.customer.count({ ...args });
-      return replacerBigIntToNumber(data);
+      const result = await this.prisma.customer.count({ ...args });
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] getAllCustomers");
       this.throwError(error);
@@ -47,11 +46,11 @@ class CustomerService extends BaseService {
     options?: Omit<Prisma.CustomerFindUniqueArgs, "where">
   ): Promise<Customer | void | null> {
     try {
-      const data = await this.prisma.customer.findUnique({
+      const result = await this.prisma.customer.findUnique({
         ...options,
         where: { customerId: id },
       });
-      return replacerBigIntToNumber(data);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] getCustomerById");
       this.throwError(error);
@@ -72,7 +71,7 @@ class CustomerService extends BaseService {
         point: input.point ?? 0,
       };
       const result = await this.prisma.customer.create({ data });
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] createCustomer");
       this.throwError(error);
@@ -88,7 +87,7 @@ class CustomerService extends BaseService {
         where: { customerId: id },
         data,
       });
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] updateCustomer");
       this.throwError(error);
@@ -100,7 +99,7 @@ class CustomerService extends BaseService {
       const result = await this.prisma.customer.delete({
         where: { customerId: id },
       });
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] deleteCustomer");
       this.throwError(error);

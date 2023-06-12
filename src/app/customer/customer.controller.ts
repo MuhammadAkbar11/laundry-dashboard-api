@@ -11,6 +11,7 @@ import {
 } from "./customer.schema";
 import CustomerService from "./customer.service";
 import Pagination from "../../helpers/pagination.helper";
+import { parsingResult } from "../../utils/utils";
 
 @BindAllMethods
 class CustomerController extends BaseController {
@@ -96,9 +97,12 @@ class CustomerController extends BaseController {
         },
       })) as Customer[];
 
-      const totalCustomers = await this.service.count({ where });
+      const totalCustomers = (await this.service.count({ where })) as number;
 
-      const data = paginated.getPagingData(totalCustomers, customers);
+      const data = paginated.getPagingData(
+        totalCustomers,
+        parsingResult(customers)
+      );
 
       res.status(200).json({
         message: this.getSuccessMessage("read", "Pelanggan"),
@@ -136,7 +140,7 @@ class CustomerController extends BaseController {
           "Pelanggan",
           customerIdParam
         ),
-        customer,
+        customer: parsingResult(customer),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -161,7 +165,7 @@ class CustomerController extends BaseController {
 
       res.status(201).json({
         message: this.getSuccessMessage("create", "Pelanggan"),
-        customer: newCustomer,
+        customer: parsingResult(newCustomer),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -202,7 +206,7 @@ class CustomerController extends BaseController {
 
       res.status(200).json({
         message: this.getSuccessMessage("update", "Pelanggan", customerIdParam),
-        customer: updatedCustomer,
+        customer: parsingResult(updatedCustomer),
       });
     } catch (error: any) {
       this.nextError(next, error);
@@ -233,7 +237,7 @@ class CustomerController extends BaseController {
 
       res.status(200).json({
         message: this.getSuccessMessage("delete", "Pelanggan", customerIdParam),
-        customer: deletedCustomer,
+        customer: parsingResult(deletedCustomer),
       });
     } catch (error: any) {
       this.nextError(next, error);
