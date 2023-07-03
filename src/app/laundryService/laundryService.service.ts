@@ -22,7 +22,7 @@ class LaundryServiceService extends BaseService {
     options?: Prisma.ServiceFindManyArgs
   ): Promise<Service[] | void> {
     try {
-      return await this.prisma.service.findMany(options);
+      return await this.prisma.service.findMany({ ...options });
     } catch (error) {
       this.logger.error("[EXCEPTION] getAllLaundryServices");
       this.throwError(error);

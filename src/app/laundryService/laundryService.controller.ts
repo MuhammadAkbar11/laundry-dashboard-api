@@ -11,7 +11,11 @@ import {
   GetLaundryServicePayload,
   UpdateLaundryServicePayload,
 } from "./laundryService.schema";
-import { parsingResult } from "../../utils/utils";
+import { isNumericQuery, parsingResult } from "../../utils/utils";
+import { SortingTypes } from "../../utils/types/types";
+
+type LaundryServiceSorting =
+  SortingTypes<Prisma.ServiceOrderByWithRelationAndSearchRelevanceInput>;
 
 @BindAllMethods
 class LaundryServiceController extends BaseController {
@@ -19,6 +23,39 @@ class LaundryServiceController extends BaseController {
 
   constructor() {
     super();
+  }
+
+  private sorting(
+    orderBy: string,
+    sortBy: Prisma.SortOrder
+  ): LaundryServiceSorting {
+    let sortingOptions: LaundryServiceSorting = {
+      [`${orderBy || "serviceId"}`]: sortBy || "desc",
+    };
+
+    if (!orderBy) {
+      sortingOptions = [{ serviceId: "desc" }];
+    }
+
+    return sortingOptions;
+  }
+
+  private searching(
+    query: string
+  ): Prisma.Enumerable<Prisma.ServiceWhereInput> {
+    const ORsearching: Prisma.Enumerable<Prisma.ServiceWhereInput> = [
+      { name: { contains: query } },
+      { description: { contains: query } },
+      { serviceId: { contains: query } },
+    ];
+
+    if (isNumericQuery(query)) {
+      ORsearching.push({
+        price: { equals: +query },
+      });
+    }
+
+    return ORsearching;
   }
 
   public async get(
@@ -39,7 +76,7 @@ class LaundryServiceController extends BaseController {
       if (!_isFiltered) {
         const result = await this.service.getAll({
           orderBy: {
-            name: "asc",
+            serviceId: "asc",
           },
         });
         return res.status(200).json({
@@ -57,21 +94,21 @@ class LaundryServiceController extends BaseController {
 
       const { limit, skip } = paginated.getPagination();
 
+      const sorting = this.sorting(
+        _orderBy as string,
+        _sortBy as Prisma.SortOrder
+      );
+
       if (_search) {
         where = {
-          OR: [
-            { name: { contains: _search } },
-            { description: { contains: _search } },
-          ],
+          OR: this.searching(_search),
         };
       }
 
       const services = await this.service.getAll({
         where,
         skip,
-        orderBy: {
-          [`${_orderBy || "createdAt"}`]: _sortBy || "asc",
-        },
+        orderBy: sorting,
         take: limit,
       });
 
@@ -142,7 +179,7 @@ class LaundryServiceController extends BaseController {
       });
 
       res.status(201).json({
-        message: this.getSuccessMessage("create", "Laundry Service"),
+        message: this.getSuccessMessage("create", "Layanan"),
         service: parsingResult(newService),
       });
     } catch (error: any) {
@@ -186,11 +223,7 @@ class LaundryServiceController extends BaseController {
       });
 
       res.status(200).json({
-        message: this.getSuccessMessage(
-          "update",
-          "Laundry Service",
-          serviceIdParam
-        ),
+        message: this.getSuccessMessage("update", "Layanan", serviceIdParam),
         service: parsingResult(updatedService),
       });
     } catch (error: any) {
@@ -223,11 +256,7 @@ class LaundryServiceController extends BaseController {
       const deletedService = await this.service.delete(serviceIdParam);
 
       res.status(200).json({
-        message: this.getSuccessMessage(
-          "delete",
-          "Laundry Service",
-          serviceIdParam
-        ),
+        message: this.getSuccessMessage("delete", "Layanan", serviceIdParam),
         service: parsingResult(deletedService),
       });
     } catch (error: any) {

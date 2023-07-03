@@ -39,7 +39,7 @@ export const deleteLaundryServiceSchema = z.object({
 
 export const getLaundryServiceSchema = z.object({
   query: z.object({
-    _isFiltered: z.boolean().optional(),
+    _isFiltered: z.string().optional(),
     _search: z.string().optional(),
     _page: z.string().optional(),
     _limit: z.string().optional(),
