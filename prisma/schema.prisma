@@ -72,7 +72,7 @@ model LaundryQueue {
   user               User                      @relation(fields: [userId], references: [userId])
   laundries          LaundryItem[]
   payments           Payment[]
-  laundryRooms       LaundryRoom?
+  laundryRoom        LaundryRoom?
 
   @@index([userId], map: "user_id_idx")
   @@index([customerId], map: "customer_id_idx")
@@ -125,14 +125,14 @@ model Customer {
 }
 
 model CashFlow {
-  cashFlowId   String       @id @map("cashflow_id") @db.VarChar(21)
-  invoice      String
-  description  String       @db.Text
-  cashFlowType CashFlowType @map("cashflow_type")
-  total        BigInt
-  balance      BigInt
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  cashflowId      String       @id @map("cashflow_id") @db.VarChar(21)
+  description     String       @db.Text
+  cashflowType    CashFlowType @map("cashflow_type")
+  total           BigInt
+  balance         BigInt
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  cashflowInvoice String       @map("cashflow_invoice")
 
   @@map("tb_cashflow")
 }
@@ -144,13 +144,13 @@ model Payment {
   discount       Int
   paid           BigInt
   cashback       BigInt
-  PaymentMethod  PaymentMethod @map("payment_method")
+  paymentMethod  PaymentMethod @map("payment_method")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   userId         String        @map("user_id") @db.VarChar(21)
   laundryQueueId String        @map("laundry_queue_id") @db.VarChar(21)
   totalPrice     BigInt        @map("total_price")
-  totalService   Int           @map("total_service")
+  totalLaundry   Int           @map("total_laundry")
   user           User          @relation(fields: [userId], references: [userId])
   laundryQueue   LaundryQueue  @relation(fields: [laundryQueueId], references: [laundryQueueId])
 
@@ -160,14 +160,14 @@ model Payment {
 }
 
 model Expenses {
-  expensesId  String   @id @map("expenses_id") @db.VarChar(21)
-  invoice     String   @db.VarChar(255)
-  description String   @db.Text
-  total       BigInt
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  userId      String   @map("user_id") @db.VarChar(21)
-  user        User     @relation(fields: [userId], references: [userId])
+  expensesId      String   @id @map("expenses_id") @db.VarChar(21)
+  description     String   @db.Text
+  total           BigInt
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  userId          String   @map("user_id") @db.VarChar(21)
+  expensesInvoice String   @map("expenses_invoice") @db.VarChar(255)
+  user            User     @relation(fields: [userId], references: [userId])
 
   @@index([userId], map: "user_id_idx")
   @@map("tb_expenses")
@@ -175,11 +175,11 @@ model Expenses {
 
 model Promo {
   promoId     String   @id @map("promo_id") @db.VarChar(15)
-  kode        String   @db.VarChar(255)
   description String   @db.Text
   discount    Int
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  code        String   @unique @db.VarChar(255)
 
   @@map("tb_promos")
 }
