@@ -22,6 +22,8 @@ import LaundryServiceRouter from "./app/laundryService/laundryService.routes";
 import LaundryQueueRouter from "./app/laundryQueue/laundryQueue.routes";
 import LaundryRoomRouter from "./app/laundryRoom/laundryRoom.routes";
 import LaundryItemRouter from "./app/laundryItem/laundryItem.routes";
+import PaymentRouter from "./app/payment/payment.routes";
+import UserRouter from "./app/user/user.routes";
 
 class App {
   public server;
@@ -56,6 +58,8 @@ class App {
     this.server.use("/auth", new AuthRouter(this.server).getRouter());
     this.server.use("/profile", new ProfileRouter(this.server).getRouter());
     this.server.use("/customer", new CustomerRouter(this.server).getRouter());
+    this.server.use("/payment", new PaymentRouter(this.server).getRouter());
+    this.server.use("/user", new UserRouter(this.server).getRouter());
     this.server.use(
       "/laundry/service",
       new LaundryServiceRouter(this.server).getRouter()
