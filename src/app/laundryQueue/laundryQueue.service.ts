@@ -55,7 +55,7 @@ class LaundryQueueService extends BaseService {
         include: {
           customer: true,
           user: true,
-          laundryRooms: true,
+          laundryRoom: true,
           laundries: true,
           _count: {
             select: { laundries: true },

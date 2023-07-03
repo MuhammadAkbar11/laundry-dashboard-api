@@ -52,7 +52,7 @@ class LaundryQueueController extends BaseController {
       };
     } else if (orderBy?.trim() === "total") {
       sortingOptions = {
-        laundryRooms: {
+        laundryRoom: {
           total: sortBy as Prisma.SortOrder,
         },
       };
@@ -114,7 +114,7 @@ class LaundryQueueController extends BaseController {
 
         if (isNumericQuery(_search)) {
           ORsearching.push({
-            laundryRooms: {
+            laundryRoom: {
               total: { equals: +_search },
             },
           });
@@ -134,7 +134,7 @@ class LaundryQueueController extends BaseController {
         include: {
           customer: true,
           user: true,
-          laundryRooms: true,
+          laundryRoom: true,
           _count: {
             select: { laundries: true },
           },
@@ -256,7 +256,7 @@ class LaundryQueueController extends BaseController {
         );
       }
 
-      if (existingLaundryQueue?.queuePaymentStatus === "FINISHED") {
+      if (existingLaundryQueue?.queuePaymentStatus !== "FINISHED") {
         throw this.error(
           "NOT_FOUND",
           400,
