@@ -128,7 +128,7 @@ export const USER_STATUS = {
 };
 
 export const SUCCESS_MESSAGES = {
-  create: (entityName: string) => `${entityName} telah berhasil dibuat`,
+  create: (entityName: string) => `${entityName} telah berhasil ditambahkan`,
   read: (entityName: string) => `Data ${entityName} telah berhasil diperoleh.`,
   readById: (entityName: string, id: string) =>
     `Data ${entityName} dengan ID ${id} telah berhasil diperoleh.`,
@@ -187,6 +187,23 @@ export const DB_AUTOINC_COLOUMNS: {
   },
   {
     table: "tb_payments",
-    columns: [{ name: "payment_id", prefix: "LPAY" }],
+    columns: [
+      { name: "payment_id", prefix: "LPAY" },
+      { name: "invoice", prefix: "INV" },
+    ],
+  },
+  {
+    table: "tb_expenses",
+    columns: [
+      { name: "expenses_id", prefix: "EXP" },
+      { name: "expenses_invoice", prefix: "INV" },
+    ],
+  },
+  {
+    table: "tb_cashflow",
+    columns: [
+      { name: "cashflow_id", prefix: "KAS" },
+      { name: "cashflow_invoice", prefix: "INV" },
+    ],
   },
 ];

@@ -126,3 +126,23 @@ export function userAgentDeviceType(userAgent: UserAgentDetails) {
     ? "tablet"
     : "desktop";
 }
+
+export function searchArray<T>(array: T[], searchTerm: string): T[] {
+  const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+  return array.filter(item => {
+    if (typeof item === "string") {
+      return item.toLowerCase().includes(lowerCaseSearchTerm);
+    }
+    // Modify this condition if the array contains objects with specific properties you want to search for.
+    if (typeof item === "object") {
+      const values = Object.values(item as any);
+      return values.some(
+        value =>
+          typeof value === "string" &&
+          value.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+    }
+    return false;
+  });
+}

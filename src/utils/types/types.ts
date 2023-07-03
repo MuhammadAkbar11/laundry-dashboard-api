@@ -14,7 +14,10 @@ export type IncTablesNameTypes =
   | "tb_laundry_queues"
   | "tb_laundry_rooms"
   | "tb_history_service"
-  | "tb_payments";
+  | "tb_payments"
+  | "tb_expenses"
+  | "tb_cashflow";
+
 export type IncTablesFieldTypes =
   | "user_id"
   | "cs_level_id"
@@ -24,4 +27,9 @@ export type IncTablesFieldTypes =
   | "laundry_queue_id"
   | "laundry_room_id"
   | "history_service_id"
-  | "payment_id";
+  | "payment_id"
+  | "invoice"
+  | "expenses_id"
+  | "expenses_invoice"
+  | "cashflow_id"
+  | "cashflow_invoice";
