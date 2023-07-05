@@ -1,21 +1,49 @@
 import express from "express";
-
 import { BaseRouter } from "../../core";
-// import validateResource from "../../middlewares/validate.middleware";
+import { requiredUser } from "../../middlewares/auth.middleware";
+import { BindAllMethods } from "../../utils/decorators.utils";
+import validateResource from "../../middlewares/validate.middleware";
 import UserController from "./user.controller";
-// import { createUserSchema } from "./user.schema";
+import {
+  createUserSchema,
+  deleteUserSchema,
+  readUserSchema,
+  updateUserSchema,
+} from "./user.schema";
+import uploadSingleImage from "../../middlewares/upload.middleware";
 
+@BindAllMethods
 class UserRouter extends BaseRouter<UserController> {
-  constructor(protected express: express.Application) {
+  constructor(protected express: express.Express) {
     super(UserController, express);
   }
 
-  protected routes() {
-    // this.router.post(
-    //   "/",
-    //   validateResource(createUserSchema),
-    //   this.controller.createUser
-    // );
+  protected routes(): void {
+    this.router
+      .route("/all")
+      .post(
+        requiredUser,
+        [validateResource(createUserSchema)],
+        this.controller.post
+      )
+      .get(
+        requiredUser,
+        [validateResource(readUserSchema)],
+        this.controller.get
+      );
+    this.router
+      .route("/:userId")
+      .put(
+        requiredUser,
+        uploadSingleImage("/users"),
+        [validateResource(updateUserSchema)],
+        this.controller.put
+      )
+      .delete(
+        requiredUser,
+        [validateResource(deleteUserSchema)],
+        this.controller.delete
+      );
   }
 }
 
