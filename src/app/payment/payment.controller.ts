@@ -1,9 +1,16 @@
+import { Payment, PaymentMethod, Prisma } from "@prisma/client";
 import { NextFunction, Request, Response } from "express";
 import { BaseController } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
-import { CreatePaymentPayload } from "./payment.schema";
+import { CreatePaymentPayload, GetPaymentPayload } from "./payment.schema";
 import PaymentService from "./payment.service";
-import { parsingResult } from "../../utils/utils";
+import { isNumericQuery, parsingResult, searchArray } from "../../utils/utils";
+import { SortingTypes } from "../../utils/types/types";
+import { PAYMENT_METHODS } from "../../configs/vars.config";
+import Pagination from "../../helpers/pagination.helper";
+
+type PaymentSorting =
+  SortingTypes<Prisma.PaymentOrderByWithRelationAndSearchRelevanceInput>;
 
 @BindAllMethods
 class PaymentController extends BaseController {
@@ -11,6 +18,140 @@ class PaymentController extends BaseController {
 
   constructor() {
     super();
+  }
+
+  private sorting(orderBy: string, sortBy: Prisma.SortOrder): PaymentSorting {
+    let sortingOptions: PaymentSorting = {
+      [`${orderBy}`]: sortBy || "desc",
+    };
+
+    if (!orderBy) {
+      sortingOptions = [{ createdAt: "desc" }];
+    }
+
+    if (orderBy?.includes("customerName")) {
+      sortingOptions = {
+        laundryQueue: {
+          customer: {
+            name: sortBy as Prisma.SortOrder,
+          },
+        },
+      };
+    }
+
+    return sortingOptions;
+  }
+
+  private searching(query: string): Prisma.Enumerable<Prisma.UserWhereInput> {
+    const paymentQuery = searchArray<string>(
+      Object.keys(PAYMENT_METHODS),
+      query
+    );
+
+    const ORsearching: Prisma.Enumerable<Prisma.PaymentWhereInput> = [
+      { userId: { contains: query } },
+      { invoice: { contains: query } },
+      {
+        laundryQueue: {
+          user: {
+            name: { contains: query },
+          },
+        },
+      },
+      {
+        laundryQueue: {
+          customer: {
+            name: { contains: query },
+          },
+        },
+      },
+    ];
+
+    if (paymentQuery.length !== 0) {
+      ORsearching.push({
+        paymentMethod: { equals: paymentQuery[0] as PaymentMethod },
+      });
+    }
+
+    if (isNumericQuery(query)) {
+      ORsearching.push({
+        totalPrice: { equals: +query },
+      });
+    }
+
+    return ORsearching;
+  }
+
+  public async get(
+    req: Request<{}, {}, {}, GetPaymentPayload["query"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const {
+        _type,
+        _search,
+        _page = 1,
+        _limit = 10,
+        _orderBy,
+        _sortBy,
+      } = req.query;
+
+      let whereQuery: Prisma.PaymentWhereInput = {};
+
+      const paginated = new Pagination<Payment>(+_page, +_limit, {
+        defaultLimit: 20,
+        itemKeyName: _type,
+      });
+
+      const { limit, skip } = paginated.getPagination();
+
+      const sorting = this.sorting(
+        _orderBy as string,
+        _sortBy as Prisma.SortOrder
+      );
+
+      if (_type === "histories") {
+        whereQuery = {
+          ...whereQuery,
+          userId: req.user?.userId,
+        };
+      }
+
+      if (_search) {
+        whereQuery = {
+          ...whereQuery,
+          OR: this.searching(_search),
+        };
+      }
+
+      const payments = await this.service.getAll({
+        where: whereQuery,
+        include: {
+          user: true,
+          laundryQueue: { include: { customer: true } },
+        },
+        skip,
+        orderBy: sorting,
+        take: limit,
+      });
+
+      const totalPayments = (await this.service.count({
+        where: whereQuery,
+      })) as number;
+
+      const data = paginated.getPagingData(
+        totalPayments,
+        payments as Payment[]
+      );
+
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Transaksi"),
+        data: { search: _search, type: _type, ...parsingResult(data) },
+      });
+    } catch (error) {
+      this.nextError(next, error);
+    }
   }
 
   public async post(

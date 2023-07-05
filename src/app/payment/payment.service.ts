@@ -169,6 +169,15 @@ class PaymentService extends BaseService {
     }
   }
 
+  public async count(args?: Prisma.PaymentCountArgs) {
+    try {
+      return await this.prisma.payment.count({ ...args });
+    } catch (error) {
+      this.logger.error("[EXCEPTION] countPayment");
+      this.throwError(error);
+    }
+  }
+
   // public async updateFinished(
   //   id: string,
   //   laundryQueueId: string

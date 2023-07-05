@@ -4,7 +4,7 @@ import { requiredUser } from "../../middlewares/auth.middleware";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import PaymentController from "./payment.controller";
 import validateResource from "../../middlewares/validate.middleware";
-import { createPaymentSchema } from "./payment.schema";
+import { createPaymentSchema, getPaymentSchema } from "./payment.schema";
 
 @BindAllMethods
 class PaymentRouter extends BaseRouter<PaymentController> {
@@ -14,7 +14,12 @@ class PaymentRouter extends BaseRouter<PaymentController> {
 
   protected routes(): void {
     this.router
-      .route("/")
+      .route("/all")
+      .get(
+        requiredUser,
+        [validateResource(getPaymentSchema)],
+        this.controller.get
+      )
       .post(
         requiredUser,
         [validateResource(createPaymentSchema)],

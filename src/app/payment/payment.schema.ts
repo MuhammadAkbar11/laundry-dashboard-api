@@ -10,4 +10,19 @@ export const createPaymentSchema = z.object({
   }),
 });
 
+export const getPaymentSchema = z.object({
+  query: z.object({
+    _type: z
+      .enum(["histories", "transactions"])
+      .optional()
+      .default("transactions"),
+    _search: z.string().optional(),
+    _page: z.string().optional(),
+    _limit: z.string().optional(),
+    _orderBy: z.string().optional(),
+    _sortBy: z.string().optional(),
+  }),
+});
+
 export type CreatePaymentPayload = z.infer<typeof createPaymentSchema>;
+export type GetPaymentPayload = z.infer<typeof getPaymentSchema>;
