@@ -15,12 +15,12 @@ abstract class JWT {
     });
   }
 
-  static verifyJWT(token: string): IJwtPayload {
+  static verifyJWT<T>(token: string): IJwtPayload<T> {
     try {
       const decoded = jwt.verify(token, PUBLIC_KEY, {
         algorithms: ["RS256"],
         allowInvalidAsymmetricKeyTypes: true,
-      }) as ISession;
+      }) as T;
       return {
         valid: true,
         expired: false,
