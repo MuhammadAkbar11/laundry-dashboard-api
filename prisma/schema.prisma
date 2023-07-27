@@ -10,27 +10,42 @@ datasource db {
 }
 
 model User {
-  userId        String         @id @map("user_id") @db.VarChar(21)
-  email         String         @unique @db.VarChar(128)
-  name          String
-  avatar        String         @db.VarChar(225)
-  password      String         @db.VarChar(225)
-  role          Role           @default(ADMIN)
-  status        Status         @default(PENDING)
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  sessions      Session[]
-  laundryQueues LaundryQueue[]
-  payments      Payment[]
-  expenses      Expenses[]
-  laundryRooms  LaundryRoom[]
+  userId    String     @id @map("user_id") @db.VarChar(6)
+  email     String     @unique @db.VarChar(128)
+  name      String
+  avatar    String     @db.VarChar(225)
+  password  String     @db.VarChar(225)
+  role      Role       @default(ADMIN)
+  status    Status     @default(PENDING)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  sessions  Session[]
+  payments  Payment[]
+  expenses  Expenses[]
 
   @@map("tb_users")
 }
 
+model Member {
+  memberId   String          @id @map("member_id") @db.VarChar(6)
+  email      String          @unique @db.VarChar(128)
+  username   String
+  avatar     String          @db.VarChar(225)
+  password   String          @db.VarChar(225)
+  status     Status          @default(PENDING)
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+  customerId String?         @unique @map("customer_id") @db.VarChar(21)
+  customer   Customer?       @relation(fields: [customerId], references: [customerId])
+  sessions   MemberSession[]
+
+  @@index([customerId], map: "cs_id_idx")
+  @@map("tb_members")
+}
+
 model Session {
   sessionId  String   @id @default(uuid()) @map("id")
-  userId     String   @map("user_id") @db.VarChar(21)
+  userId     String   @map("user_id") @db.VarChar(6)
   userAgent  String   @map("user_agent") @db.LongText
   ipAddress  String   @map("ip_address") @db.VarChar(128)
   deviceType String   @map("device_type") @db.VarChar(40)
@@ -44,8 +59,24 @@ model Session {
   @@map("tb_sessions")
 }
 
+model MemberSession {
+  memberSessionId String   @id @default(uuid()) @map("id")
+  memberId        String   @map("member_id") @db.VarChar(6)
+  userAgent       String   @map("user_agent") @db.LongText
+  ipAddress       String   @map("ip_address") @db.VarChar(128)
+  deviceType      String   @map("device_type") @db.VarChar(40)
+  valid           Boolean
+  expired         DateTime
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  member          Member   @relation(fields: [memberId], references: [memberId])
+
+  @@index([memberId], map: "member_id_idx")
+  @@map("tb_member_sessions")
+}
+
 model Service {
-  serviceId   String      @id @map("service_id") @db.VarChar(21)
+  serviceId   String      @id @map("service_id") @db.VarChar(7)
   name        String      @db.VarChar(128)
   description String      @db.Text
   unit        ServiceUnit
@@ -56,38 +87,51 @@ model Service {
   @@map("tb_services")
 }
 
+model HistoryService {
+  historyServiceId String        @id @map("history_service_id") @db.VarChar(7)
+  serviceId        String        @map("service_id") @db.VarChar(7)
+  name             String        @db.VarChar(128)
+  description      String        @db.Text
+  unit             ServiceUnit
+  price            BigInt
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  LaundryItem      LaundryItem[]
+
+  @@map("tb_history_services")
+}
+
 model LaundryQueue {
-  laundryQueueId     String                    @id @map("laundry_queue_id") @db.VarChar(21)
+  laundryQueueId     String                    @id @map("laundry_queue_id") @db.VarChar(13)
   queuePaymentStatus LaundryQueuePaymentStatus @default(PENDING) @map("payment_status")
   status             LaundryQueueStatus        @default(ONHOLD)
   finishedAt         DateTime?                 @map("finished_at")
   createdAt          DateTime                  @default(now()) @map("created_at")
   updatedAt          DateTime                  @updatedAt @map("updated_at")
   customerId         String                    @map("customer_id") @db.VarChar(21)
-  userId             String                    @map("user_id") @db.VarChar(21)
   deliveryAt         DateTime?                 @map("delivery_at")
   deliveryType       DeliveryType              @map("delivery_type")
   note               String?                   @db.Text
+  deliveryAddress    String?                   @map("delivery_address")
+  pickupAt           DateTime?                 @map("pickup_at")
   customer           Customer?                 @relation(fields: [customerId], references: [customerId])
-  user               User                      @relation(fields: [userId], references: [userId])
   laundries          LaundryItem[]
-  payments           Payment[]
+  payment            Payment?
   laundryRoom        LaundryRoom?
 
-  @@index([userId], map: "user_id_idx")
   @@index([customerId], map: "customer_id_idx")
   @@map("tb_laundry_queues")
 }
 
 model LaundryItem {
-  laundryId        String          @id @map("laundry_id") @db.VarChar(21)
+  laundryId        String          @id @map("laundry_id") @db.VarChar(8)
   quantity         Int
   totalPrice       BigInt          @map("total_price")
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
-  laundryQueueId   String          @map("laundry_queue_id") @db.VarChar(21)
+  laundryQueueId   String          @map("laundry_queue_id") @db.VarChar(13)
   note             String?         @db.Text
-  historyServiceId String          @map("history_service_id") @db.VarChar(25)
+  historyServiceId String          @map("history_service_id") @db.VarChar(7)
   laundryQueue     LaundryQueue    @relation(fields: [laundryQueueId], references: [laundryQueueId])
   historyService   HistoryService? @relation(fields: [historyServiceId], references: [historyServiceId])
 
@@ -97,7 +141,7 @@ model LaundryItem {
 }
 
 model CustomerLevel {
-  customerLevelId String     @id @map("cs_level_id") @db.VarChar(21)
+  customerLevelId String     @id @map("cs_level_id") @db.VarChar(8)
   name            String     @db.VarChar(255)
   point           BigInt
   discount        Int
@@ -109,16 +153,17 @@ model CustomerLevel {
 }
 
 model Customer {
-  customerId      String         @id @map("customer_id") @db.VarChar(21)
-  name            String
-  address         String         @db.Text
-  phone           String
-  customerLevelId String         @map("cs_level_id") @db.VarChar(21)
+  customerId      String         @id @map("customer_id") @db.VarChar(8)
+  name            String         @db.VarChar(33)
+  address         String?        @db.Text
+  phone           String?        @db.VarChar(21)
+  customerLevelId String         @map("cs_level_id") @db.VarChar(8)
   point           Int            @default(0)
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
   customerLevel   CustomerLevel  @relation(fields: [customerLevelId], references: [customerLevelId])
   laundryQueues   LaundryQueue[]
+  Member          Member?
 
   @@index([customerLevelId], map: "cs_level_id_idx")
   @@map("tb_customers")
@@ -132,14 +177,14 @@ model CashFlow {
   balance         BigInt
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
-  cashflowInvoice String       @map("cashflow_invoice")
+  cashflowInvoice String       @map("cashflow_invoice") @db.VarChar(13)
 
   @@map("tb_cashflow")
 }
 
 model Payment {
-  paymentId      String        @id @map("payment_id") @db.VarChar(21)
-  invoice        String
+  paymentId      String        @id @map("payment_id") @db.VarChar(7)
+  invoice        String        @unique @db.VarChar(13)
   price          BigInt
   discount       Int
   paid           BigInt
@@ -147,10 +192,11 @@ model Payment {
   paymentMethod  PaymentMethod @map("payment_method")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
-  userId         String        @map("user_id") @db.VarChar(21)
-  laundryQueueId String        @map("laundry_queue_id") @db.VarChar(21)
+  userId         String        @map("user_id") @db.VarChar(6)
+  laundryQueueId String        @unique @map("laundry_queue_id") @db.VarChar(13)
   totalPrice     BigInt        @map("total_price")
   totalLaundry   Int           @map("total_laundry")
+  proof          String?       @db.VarChar(128)
   user           User          @relation(fields: [userId], references: [userId])
   laundryQueue   LaundryQueue  @relation(fields: [laundryQueueId], references: [laundryQueueId])
 
@@ -160,13 +206,13 @@ model Payment {
 }
 
 model Expenses {
-  expensesId      String   @id @map("expenses_id") @db.VarChar(21)
+  expensesId      String   @id @map("expenses_id") @db.VarChar(6)
   description     String   @db.Text
   total           BigInt
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
-  userId          String   @map("user_id") @db.VarChar(21)
-  expensesInvoice String   @map("expenses_invoice") @db.VarChar(255)
+  userId          String   @map("user_id") @db.VarChar(6)
+  expensesInvoice String   @map("expenses_invoice") @db.VarChar(13)
   user            User     @relation(fields: [userId], references: [userId])
 
   @@index([userId], map: "user_id_idx")
@@ -185,44 +231,27 @@ model Promo {
 }
 
 model LaundryRoom {
-  laundryRoomId  String            @id @map("laundry_room_id") @db.VarChar(21)
+  laundryRoomId  String            @id @map("laundry_room_id") @db.VarChar(15)
   total          Int?
   status         LaundryRoomStatus
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
-  userId         String            @map("user_id") @db.VarChar(21)
-  laundryQueueId String            @unique @map("laundry_queue_id") @db.VarChar(21)
-  user           User              @relation(fields: [userId], references: [userId])
+  laundryQueueId String            @unique @map("laundry_queue_id") @db.VarChar(13)
   laundryQueue   LaundryQueue      @relation(fields: [laundryQueueId], references: [laundryQueueId])
 
   @@index([laundryQueueId], map: "ldry_queue_id_idx")
-  @@index([userId], map: "user_id_idx")
   @@map("tb_laundry_rooms")
 }
 
 model Setting {
   settingId   BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  name        String   @db.VarChar(255)
+  name        String   @unique @db.VarChar(255)
   description String   @db.Text
   value       String   @db.LongText
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("tb_settings")
-}
-
-model HistoryService {
-  historyServiceId String        @id @map("history_service_id") @db.VarChar(25)
-  serviceId        String        @map("service_id") @db.VarChar(21)
-  name             String        @db.VarChar(128)
-  description      String        @db.Text
-  unit             ServiceUnit
-  price            BigInt
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
-  LaundryItem      LaundryItem[]
-
-  @@map("tb_history_service")
 }
 
 /// @@Gen.model(hide: true)
@@ -243,7 +272,7 @@ enum ServiceUnit {
 
 enum Role {
   ADMIN
-  OPERATOR
+  CASHIER
   OFFICER
 }
 
@@ -253,6 +282,8 @@ enum CashFlowType {
 }
 
 enum LaundryQueueStatus {
+  PENDING  @map("pending")
+  CANCELED @map("canceled")
   ONHOLD   @map("onhold")
   WASHED   @map("washed")
   FINISHED @map("finished")
@@ -272,8 +303,10 @@ enum PaymentMethod {
 }
 
 enum LaundryQueuePaymentStatus {
-  PENDING  @map("pending")
-  FINISHED @map("finished")
+  PENDING   @map("pending")
+  PROCESSED @map("processed")
+  REJECTED  @map("rejected")
+  FINISHED  @map("finished")
 }
 
 enum Status {
