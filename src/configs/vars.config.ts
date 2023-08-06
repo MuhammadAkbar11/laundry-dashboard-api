@@ -4,7 +4,14 @@ import fs from "fs";
 import os from "os";
 import { ModeTypes } from "../utils/types/types";
 import logger from "./logger.config";
-import { Role } from "@prisma/client";
+import {
+  DeliveryType,
+  LaundryQueuePaymentStatus,
+  LaundryQueueStatus,
+  LaundryRoomStatus,
+  PaymentMethod,
+  Role,
+} from "@prisma/client";
 
 const appDirname = path.resolve();
 
@@ -75,6 +82,8 @@ export const HOSTNAME = os.hostname();
 export const PORT = process.env.PORT || 3000;
 export const MODE = mode;
 export const DATABASE_URL = process.env.DATABASE_UR as string;
+export const ALLOWED_ORIGINS =
+  (process.env?.ALLOWED_ORIGINS as string) || "http://localhost:3379";
 export const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 export const PUBLIC_KEY = process.env.PUBLIC_KEY as string;
 export const OAUTH_REFRESH_TOKEN = process.env?.OAUTH_REFRESH_TOKEN as string;
@@ -93,6 +102,7 @@ export const SERVER_URL =
     : `http://${HOSTNAME}:${PORT}/`;
 
 export const DEFAULT_USER_AVATAR = "/images/avatar.jpeg";
+export const DEFAULT_USER_PASSWORD = "LAUNDRY123";
 
 export const ACCESS_TOKEN_TTL = "15m";
 export const REFRESH_TOKEN_TTL = "7d";
@@ -107,13 +117,27 @@ export const HTTP_STATUS_CODE = {
   INTERNAL_SERVER: 500,
 };
 
-export const ROLES: Record<string, string> = Object.values(Role).reduce(
-  (acc, val) => {
+function createFormattedObject(
+  enumObject: Record<string, string>
+): Record<string, string> {
+  return Object.values(enumObject).reduce((acc, val) => {
     acc[val] = val.toLowerCase().replace(/^\w/, c => c.toUpperCase());
     return acc;
-  },
-  {} as Record<string, string>
+  }, {} as Record<string, string>);
+}
+
+export const ROLES: Record<string, string> = createFormattedObject(Role);
+export const LQ_STATUS: Record<string, string> =
+  createFormattedObject(LaundryQueueStatus);
+export const LQ_PAY_STATUS: Record<string, string> = createFormattedObject(
+  LaundryQueuePaymentStatus
 );
+export const LAUNDRY_ROOM_STATUS: Record<string, string> =
+  createFormattedObject(LaundryRoomStatus);
+export const DELIVERY_TYPE: Record<string, string> =
+  createFormattedObject(DeliveryType);
+export const PAYMENT_METHODS: Record<string, string> =
+  createFormattedObject(PaymentMethod);
 
 export const ROLES_ARR = Object.values(Role).map(role => ({
   value: role.toUpperCase(),
@@ -156,6 +180,10 @@ export const DB_AUTOINC_COLOUMNS: {
   {
     table: "tb_users",
     columns: [{ name: "user_id", prefix: "USR" }],
+  },
+  {
+    table: "tb_members",
+    columns: [{ name: "member_id", prefix: "MBR" }],
   },
   {
     table: "tb_customer_levels",
