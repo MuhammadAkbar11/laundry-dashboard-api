@@ -10,7 +10,7 @@ export const createPaymentSchema = z.object({
   }),
 });
 
-export const getPaymentSchema = z.object({
+export const readPaymentSchema = z.object({
   query: z.object({
     _type: z
       .enum(["histories", "transactions"])
@@ -24,5 +24,14 @@ export const getPaymentSchema = z.object({
   }),
 });
 
+export const readPaymentByInvoiceSchema = z.object({
+  params: z.object({
+    invoice: z.string().nonempty("Invoice is required"),
+  }),
+});
+
 export type CreatePaymentPayload = z.infer<typeof createPaymentSchema>;
-export type GetPaymentPayload = z.infer<typeof getPaymentSchema>;
+export type ReadPaymentPayload = z.infer<typeof readPaymentSchema>;
+export type ReadPaymentByInvoicePayload = z.infer<
+  typeof readPaymentByInvoiceSchema
+>;

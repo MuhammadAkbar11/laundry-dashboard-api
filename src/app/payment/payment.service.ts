@@ -1,4 +1,4 @@
-import { LaundryQueue, Payment, Prisma } from "@prisma/client";
+import { Payment, Prisma } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { dateIndoWIB } from "../../configs/date.config";
@@ -47,6 +47,28 @@ class PaymentService extends BaseService {
     }
   }
 
+  public async getByInvoice(invoice: string): Promise<Payment | void | null> {
+    try {
+      const result = await this.prisma.payment.findUnique({
+        where: { invoice: invoice },
+        include: {
+          user: true,
+          laundryQueue: {
+            include: {
+              customer: true,
+              laundryRoom: true,
+              laundries: { include: { historyService: true } },
+            },
+          },
+        },
+      });
+      return result;
+    } catch (error) {
+      this.logger.error("[EXCEPTION] getByInvoice");
+      this.throwError(error);
+    }
+  }
+
   public async create(
     payload: Pick<
       Payment,
@@ -77,17 +99,17 @@ class PaymentService extends BaseService {
         );
         let discount = (roomTotalPrice * customerDiscount) / 100;
 
-        const promo = await tx.promo.findUnique({
-          where: { code: payload.code?.trim() },
-        });
+        // const promo = await tx.promo.findUnique({
+        //   where: { code: payload.code?.trim() },
+        // });
 
-        if (promo) {
-          discount =
-            (roomTotalPrice * customerDiscount) / 100 +
-            ((roomTotalPrice - (roomTotalPrice * customerDiscount) / 100) *
-              promo.discount) /
-              100;
-        }
+        // if (promo) {
+        //   discount =
+        //     (roomTotalPrice * customerDiscount) / 100 +
+        //     ((roomTotalPrice - (roomTotalPrice * customerDiscount) / 100) *
+        //       promo.discount) /
+        //       100;
+        // }
 
         const paymentId = await this.createPrimaryKeyValue();
         const paymentInvoice = await this.generateIncField({
@@ -110,6 +132,8 @@ class PaymentService extends BaseService {
             cashback: Number(payload.paid) - (roomTotalPrice - discount),
             paymentMethod: payload.paymentMethod,
             userId: payload.userId,
+            createdAt: dateIndoWIB().format(),
+            updatedAt: dateIndoWIB().format(),
           },
         });
 
@@ -144,7 +168,7 @@ class PaymentService extends BaseService {
             description: "Pembayaran Cucian",
             cashflowType: "IN",
             total: roomTotalPrice - discount,
-            balance: sumCashflow * (roomTotalPrice - discount),
+            balance: Number(sumCashflow) + Number(roomTotalPrice - discount),
           },
         });
 

@@ -2,7 +2,11 @@ import { Payment, PaymentMethod, Prisma } from "@prisma/client";
 import { NextFunction, Request, Response } from "express";
 import { BaseController } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
-import { CreatePaymentPayload, GetPaymentPayload } from "./payment.schema";
+import {
+  CreatePaymentPayload,
+  ReadPaymentByInvoicePayload,
+  ReadPaymentPayload,
+} from "./payment.schema";
 import PaymentService from "./payment.service";
 import { isNumericQuery, parsingResult, searchArray } from "../../utils/utils";
 import { SortingTypes } from "../../utils/types/types";
@@ -42,7 +46,9 @@ class PaymentController extends BaseController {
     return sortingOptions;
   }
 
-  private searching(query: string): Prisma.Enumerable<Prisma.UserWhereInput> {
+  private searching(
+    query: string
+  ): Prisma.Enumerable<Prisma.PaymentWhereInput> {
     const paymentQuery = searchArray<string>(
       Object.keys(PAYMENT_METHODS),
       query
@@ -52,10 +58,8 @@ class PaymentController extends BaseController {
       { userId: { contains: query } },
       { invoice: { contains: query } },
       {
-        laundryQueue: {
-          user: {
-            name: { contains: query },
-          },
+        user: {
+          name: { contains: query },
         },
       },
       {
@@ -83,7 +87,7 @@ class PaymentController extends BaseController {
   }
 
   public async get(
-    req: Request<{}, {}, {}, GetPaymentPayload["query"]>,
+    req: Request<{}, {}, {}, ReadPaymentPayload["query"]>,
     res: Response,
     next: NextFunction
   ) {
@@ -97,7 +101,11 @@ class PaymentController extends BaseController {
         _sortBy,
       } = req.query;
 
-      let whereQuery: Prisma.PaymentWhereInput = {};
+      let whereQuery: Prisma.PaymentWhereInput = {
+        laundryQueue: {
+          status: "FINISHED",
+        },
+      };
 
       const paginated = new Pagination<Payment>(+_page, +_limit, {
         defaultLimit: 20,
@@ -150,6 +158,33 @@ class PaymentController extends BaseController {
         data: { search: _search, type: _type, ...parsingResult(data) },
       });
     } catch (error) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async getByInvoice(
+    req: Request<ReadPaymentByInvoicePayload["params"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    const invoiceParam = req.params.invoice as string;
+
+    try {
+      const invoice = await this.service.getByInvoice(invoiceParam);
+
+      if (!invoice) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Invoice", invoiceParam)
+        );
+      }
+
+      res.status(200).json({
+        message: this.getSuccessMessage("readById", "Invoice", invoiceParam),
+        invoice: parsingResult(invoice),
+      });
+    } catch (error: any) {
       this.nextError(next, error);
     }
   }
