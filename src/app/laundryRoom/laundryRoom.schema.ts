@@ -38,9 +38,7 @@ export const readLaundryRoomSchema = z.object({
         "status",
         "createdAt",
         "updatedAt",
-        "userId",
         "customerName",
-        "userName",
         "laundryQueueId",
       ])
       .optional(),
@@ -52,8 +50,8 @@ export const readByIDLaundryRoomSchema = z.object({
   params: z.object({
     laundryRoomId: z
       .string()
-      .nonempty("Laundry queue ID is required")
-      .max(21, "Laundry queue ID should not exceed 21 characters"),
+      .nonempty("Laundry room ID is required")
+      .max(21, "Laundry room ID should not exceed 21 characters"),
   }),
 });
 

@@ -10,7 +10,7 @@ import {
   UpdateLaundryRoomFinishedPayload,
 } from "./laundryRoom.schema";
 import { SortingTypes } from "../../utils/types/types";
-import { isNumericQuery } from "../../utils/utils";
+import { isNumericQuery, parsingResult } from "../../utils/utils";
 
 type LaundryRoomSorting =
   SortingTypes<Prisma.LaundryRoomOrderByWithRelationAndSearchRelevanceInput>;
@@ -43,12 +43,6 @@ class LaundryRoomController extends BaseController {
           },
         },
       };
-    } else if (orderBy?.trim() === "userName") {
-      sortingOptions = {
-        user: {
-          name: sortBy as Prisma.SortOrder,
-        },
-      };
     }
 
     return sortingOptions;
@@ -63,11 +57,7 @@ class LaundryRoomController extends BaseController {
           contains: query,
         },
       },
-      {
-        userId: {
-          contains: query,
-        },
-      },
+
       {
         laundryQueueId: {
           contains: query,
@@ -130,7 +120,6 @@ class LaundryRoomController extends BaseController {
         take: limit,
         skip,
         include: {
-          user: true,
           laundryQueue: {
             include: {
               customer: true,
@@ -140,13 +129,13 @@ class LaundryRoomController extends BaseController {
         },
       })) as LaundryRoom[];
 
-      const total = await this.service.count({ where });
+      const total = (await this.service.count({ where })) as number;
 
       const data = paginated.getPagingData(total, result);
 
       const response = {
         message: this.getSuccessMessage("read", "Room"),
-        data: { search: _search, ...data },
+        data: { search: _search, ...parsingResult(data) },
       };
 
       return res.status(200).json(response);
@@ -175,7 +164,7 @@ class LaundryRoomController extends BaseController {
 
       return res.status(200).json({
         message: this.getSuccessMessage("readById", "Room", laundryRoomId),
-        laundryRoom: result,
+        laundryRoom: parsingResult(result),
       });
     } catch (error) {
       return next(error);
@@ -227,7 +216,7 @@ class LaundryRoomController extends BaseController {
 
       return res.status(200).json({
         message: this.getSuccessMessage("update", "Room"),
-        ...result,
+        ...parsingResult(result),
       });
     } catch (error) {
       return next(error);

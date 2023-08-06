@@ -1,6 +1,5 @@
 import { LaundryQueue, LaundryRoom, Prisma } from "@prisma/client";
 import { BaseService } from "../../core";
-import { replacerBigIntToNumber } from "../../utils/utils";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { dateIndoWIB } from "../../configs/date.config";
 
@@ -23,7 +22,7 @@ class LaundryRoomService extends BaseService {
   ): Promise<LaundryRoom[] | void> {
     try {
       const data = await this.prisma.laundryRoom.findMany(options);
-      return replacerBigIntToNumber(data);
+      return data;
     } catch (error) {
       this.logger.error("[EXCEPTION] getAllLaundryRoom");
       this.throwError(error);
@@ -32,16 +31,15 @@ class LaundryRoomService extends BaseService {
 
   public async getById(id: string): Promise<LaundryRoom | void | null> {
     try {
-      const data = await this.prisma.laundryRoom.findUnique({
+      const result = await this.prisma.laundryRoom.findUnique({
         where: { laundryRoomId: id },
         include: {
-          user: true,
           laundryQueue: {
-            include: { customer: true },
+            include: { customer: true, payment: true },
           },
         },
       });
-      return replacerBigIntToNumber(data);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] getLaundryRoomById");
       this.throwError(error);
@@ -51,7 +49,9 @@ class LaundryRoomService extends BaseService {
   public async updateFinished(
     id: string,
     laundryQueueId: string
-  ): Promise<LaundryRoom | undefined> {
+  ): Promise<
+    { laundryRoom: LaundryRoom; laundryQueue: LaundryQueue } | undefined
+  > {
     try {
       const result = await this.prisma.$transaction(async tx => {
         const updatedlaundryQueue = await tx.laundryQueue.update({
@@ -77,7 +77,7 @@ class LaundryRoomService extends BaseService {
         };
       });
 
-      return replacerBigIntToNumber(result);
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] updateFinished");
       this.throwError(error);
@@ -86,8 +86,8 @@ class LaundryRoomService extends BaseService {
 
   public async count(args?: Prisma.LaundryRoomCountArgs) {
     try {
-      const data = await this.prisma.laundryRoom.count({ ...args });
-      return replacerBigIntToNumber(data);
+      const result = await this.prisma.laundryRoom.count({ ...args });
+      return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] countLaundryQueue");
       this.throwError(error);
