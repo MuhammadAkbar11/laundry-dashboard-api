@@ -10,7 +10,7 @@ datasource db {
 }
 
 model User {
-  userId    String     @id @map("user_id") @db.VarChar(6)
+  userId    String     @id @map("user_id") @db.VarChar(11)
   email     String     @unique @db.VarChar(128)
   name      String
   avatar    String     @db.VarChar(225)
@@ -27,7 +27,7 @@ model User {
 }
 
 model Member {
-  memberId   String          @id @map("member_id") @db.VarChar(6)
+  memberId   String          @id @map("member_id") @db.VarChar(11)
   email      String          @unique @db.VarChar(128)
   username   String
   avatar     String          @db.VarChar(225)
@@ -35,7 +35,7 @@ model Member {
   status     Status          @default(PENDING)
   createdAt  DateTime        @default(now()) @map("created_at")
   updatedAt  DateTime        @updatedAt @map("updated_at")
-  customerId String?         @unique @map("customer_id") @db.VarChar(21)
+  customerId String?         @unique @map("customer_id") @db.VarChar(11)
   customer   Customer?       @relation(fields: [customerId], references: [customerId])
   sessions   MemberSession[]
 
@@ -44,8 +44,8 @@ model Member {
 }
 
 model Session {
-  sessionId  String   @id @default(uuid()) @map("id")
-  userId     String   @map("user_id") @db.VarChar(6)
+  sessionId  String   @id @default(uuid()) @map("id") @db.VarChar(66)
+  userId     String   @map("user_id") @db.VarChar(11)
   userAgent  String   @map("user_agent") @db.LongText
   ipAddress  String   @map("ip_address") @db.VarChar(128)
   deviceType String   @map("device_type") @db.VarChar(40)
@@ -60,8 +60,8 @@ model Session {
 }
 
 model MemberSession {
-  memberSessionId String   @id @default(uuid()) @map("id")
-  memberId        String   @map("member_id") @db.VarChar(6)
+  memberSessionId String   @id @default(uuid()) @map("id") @db.VarChar(66)
+  memberId        String   @map("member_id") @db.VarChar(11)
   userAgent       String   @map("user_agent") @db.LongText
   ipAddress       String   @map("ip_address") @db.VarChar(128)
   deviceType      String   @map("device_type") @db.VarChar(40)
@@ -76,7 +76,7 @@ model MemberSession {
 }
 
 model Service {
-  serviceId   String      @id @map("service_id") @db.VarChar(7)
+  serviceId   String      @id @map("service_id") @db.VarChar(11)
   name        String      @db.VarChar(128)
   description String      @db.Text
   unit        ServiceUnit
@@ -88,8 +88,8 @@ model Service {
 }
 
 model HistoryService {
-  historyServiceId String        @id @map("history_service_id") @db.VarChar(7)
-  serviceId        String        @map("service_id") @db.VarChar(7)
+  historyServiceId String        @id @map("history_service_id") @db.VarChar(11)
+  serviceId        String        @map("service_id") @db.VarChar(11)
   name             String        @db.VarChar(128)
   description      String        @db.Text
   unit             ServiceUnit
@@ -102,13 +102,13 @@ model HistoryService {
 }
 
 model LaundryQueue {
-  laundryQueueId     String                    @id @map("laundry_queue_id") @db.VarChar(13)
+  laundryQueueId     String                    @id @map("laundry_queue_id") @db.VarChar(15)
   queuePaymentStatus LaundryQueuePaymentStatus @default(PENDING) @map("payment_status")
   status             LaundryQueueStatus        @default(ONHOLD)
   finishedAt         DateTime?                 @map("finished_at")
   createdAt          DateTime                  @default(now()) @map("created_at")
   updatedAt          DateTime                  @updatedAt @map("updated_at")
-  customerId         String                    @map("customer_id") @db.VarChar(21)
+  customerId         String                    @map("customer_id") @db.VarChar(11)
   deliveryAt         DateTime?                 @map("delivery_at")
   deliveryType       DeliveryType              @map("delivery_type")
   note               String?                   @db.Text
@@ -124,14 +124,14 @@ model LaundryQueue {
 }
 
 model LaundryItem {
-  laundryId        String          @id @map("laundry_id") @db.VarChar(8)
+  laundryId        String          @id @map("laundry_id") @db.VarChar(11)
   quantity         Int
   totalPrice       BigInt          @map("total_price")
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
-  laundryQueueId   String          @map("laundry_queue_id") @db.VarChar(13)
+  laundryQueueId   String          @map("laundry_queue_id") @db.VarChar(15)
   note             String?         @db.Text
-  historyServiceId String          @map("history_service_id") @db.VarChar(7)
+  historyServiceId String          @map("history_service_id") @db.VarChar(11)
   laundryQueue     LaundryQueue    @relation(fields: [laundryQueueId], references: [laundryQueueId])
   historyService   HistoryService? @relation(fields: [historyServiceId], references: [historyServiceId])
 
@@ -141,7 +141,7 @@ model LaundryItem {
 }
 
 model CustomerLevel {
-  customerLevelId String     @id @map("cs_level_id") @db.VarChar(8)
+  customerLevelId String     @id @map("cs_level_id") @db.VarChar(11)
   name            String     @db.VarChar(255)
   point           BigInt
   discount        Int
@@ -153,11 +153,11 @@ model CustomerLevel {
 }
 
 model Customer {
-  customerId      String         @id @map("customer_id") @db.VarChar(8)
+  customerId      String         @id @map("customer_id") @db.VarChar(11)
   name            String         @db.VarChar(33)
   address         String?        @db.Text
   phone           String?        @db.VarChar(21)
-  customerLevelId String         @map("cs_level_id") @db.VarChar(8)
+  customerLevelId String         @map("cs_level_id") @db.VarChar(11)
   point           Int            @default(0)
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
@@ -170,34 +170,34 @@ model Customer {
 }
 
 model CashFlow {
-  cashflowId      String       @id @map("cashflow_id") @db.VarChar(21)
+  cashflowId      String       @id @map("cashflow_id") @db.VarChar(11)
   description     String       @db.Text
   cashflowType    CashFlowType @map("cashflow_type")
   total           BigInt
   balance         BigInt
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
-  cashflowInvoice String       @map("cashflow_invoice") @db.VarChar(13)
+  cashflowInvoice String       @map("cashflow_invoice") @db.VarChar(15)
 
   @@map("tb_cashflow")
 }
 
 model Payment {
-  paymentId      String        @id @map("payment_id") @db.VarChar(7)
-  invoice        String        @unique @db.VarChar(13)
+  paymentId      String        @id @map("payment_id") @db.VarChar(11)
+  invoice        String        @unique @db.VarChar(15)
   price          BigInt
   discount       Int
   paid           BigInt
   cashback       BigInt
   paymentMethod  PaymentMethod @map("payment_method")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  userId         String        @map("user_id") @db.VarChar(6)
-  laundryQueueId String        @unique @map("laundry_queue_id") @db.VarChar(13)
+  createdAt      String        @map("created_at")
+  updatedAt      String        @map("updated_at")
+  userId         String?       @map("user_id") @db.VarChar(11)
+  laundryQueueId String        @unique @map("laundry_queue_id") @db.VarChar(15)
   totalPrice     BigInt        @map("total_price")
   totalLaundry   Int           @map("total_laundry")
   proof          String?       @db.VarChar(128)
-  user           User          @relation(fields: [userId], references: [userId])
+  user           User?         @relation(fields: [userId], references: [userId])
   laundryQueue   LaundryQueue  @relation(fields: [laundryQueueId], references: [laundryQueueId])
 
   @@index([laundryQueueId], map: "ldry_queue_id_idx")
@@ -206,12 +206,12 @@ model Payment {
 }
 
 model Expenses {
-  expensesId      String   @id @map("expenses_id") @db.VarChar(6)
+  expensesId      String   @id @map("expenses_id") @db.VarChar(11)
   description     String   @db.Text
   total           BigInt
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
-  userId          String   @map("user_id") @db.VarChar(6)
+  userId          String   @map("user_id") @db.VarChar(11)
   expensesInvoice String   @map("expenses_invoice") @db.VarChar(13)
   user            User     @relation(fields: [userId], references: [userId])
 
@@ -219,16 +219,16 @@ model Expenses {
   @@map("tb_expenses")
 }
 
-model Promo {
-  promoId     String   @id @map("promo_id") @db.VarChar(15)
-  description String   @db.Text
-  discount    Int
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  code        String   @unique @db.VarChar(255)
+// model Promo {
+//   promoId     String   @id @map("promo_id") @db.VarChar(15)
+//   description String   @db.Text
+//   discount    Int
+//   createdAt   DateTime @default(now()) @map("created_at")
+//   updatedAt   DateTime @updatedAt @map("updated_at")
+//   code        String   @unique @db.VarChar(255)
 
-  @@map("tb_promos")
-}
+//   @@map("tb_promos")
+// }
 
 model LaundryRoom {
   laundryRoomId  String            @id @map("laundry_room_id") @db.VarChar(15)
@@ -236,7 +236,7 @@ model LaundryRoom {
   status         LaundryRoomStatus
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
-  laundryQueueId String            @unique @map("laundry_queue_id") @db.VarChar(13)
+  laundryQueueId String            @unique @map("laundry_queue_id") @db.VarChar(15)
   laundryQueue   LaundryQueue      @relation(fields: [laundryQueueId], references: [laundryQueueId])
 
   @@index([laundryQueueId], map: "ldry_queue_id_idx")
