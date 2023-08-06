@@ -42,7 +42,7 @@ export function returnError404Middleware(
   res: Response,
   next: NextFunction
 ) {
-  const error = new BaseError("BAD_REQUEST", 404, "Page Not Found", {});
+  const error = new BaseError("BAD_REQUEST", 404, "Url Not Found", {});
   next(BaseError.transformError(error));
 }
 

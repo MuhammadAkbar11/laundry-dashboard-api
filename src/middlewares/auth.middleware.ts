@@ -6,6 +6,7 @@ import AuthService from "../app/auth/auth.service";
 import logger from "../configs/logger.config";
 
 import { ACCESS_TOKEN_MAX_AGE } from "../configs/vars.config";
+import { ISession } from "../utils/types/interfaces";
 
 const authService = new AuthService();
 
@@ -68,7 +69,7 @@ export async function deserializeUser(
 
     if (!accessToken) {
       const { decoded: refresh } = refreshToken
-        ? JWT.verifyJWT(refreshToken)
+        ? JWT.verifyJWT<ISession>(refreshToken)
         : { decoded: null };
 
       if (!refresh) {
@@ -92,7 +93,9 @@ export async function deserializeUser(
       if (newAccessToken) {
         setNewAccessTokenCookie(req, res, newAccessToken as string);
 
-        const result = JWT.verifyJWT((newAccessToken as string) || "");
+        const result = JWT.verifyJWT<ISession>(
+          (newAccessToken as string) || ""
+        );
         const user = await authService.getSessionUser(
           result.decoded?.userId as string
         );
@@ -111,7 +114,8 @@ export async function deserializeUser(
       return next();
     }
 
-    const { decoded: decodedAccess, expired } = JWT.verifyJWT(accessToken);
+    const { decoded: decodedAccess, expired } =
+      JWT.verifyJWT<ISession>(accessToken);
 
     // For a valid access token
     if (decodedAccess) {
@@ -149,7 +153,9 @@ export async function deserializeUser(
     }
 
     const { decoded: decodedRefreshToken } =
-      expired && refreshToken ? JWT.verifyJWT(refreshToken) : { decoded: null };
+      expired && refreshToken
+        ? JWT.verifyJWT<ISession>(refreshToken)
+        : { decoded: null };
 
     if (!decodedRefreshToken) {
       logger.warn("[SESSION] No authorized (!decodedRefreshToken)");
@@ -172,7 +178,7 @@ export async function deserializeUser(
     });
 
     if (newAccessToken) {
-      const { decoded: newDecodedAccessToken } = JWT.verifyJWT(
+      const { decoded: newDecodedAccessToken } = JWT.verifyJWT<ISession>(
         (newAccessToken as string) || ""
       );
       const user = await authService.getSessionUser(
