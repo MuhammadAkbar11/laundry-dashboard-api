@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "commonjs",
-    "outDir": "build",
+    "outDir": "./build",
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "noImplicitAny": true,
