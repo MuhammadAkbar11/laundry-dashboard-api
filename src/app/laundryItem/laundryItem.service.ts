@@ -88,9 +88,13 @@ class LaundryItemService extends BaseService {
               prismaTx: tx,
               tableName: "tb_history_service",
               field: "history_service_id",
-              length: 8,
+              length: 7,
             }),
-            ..._.omit(laundryService, "createdAt", "updatedAt"),
+            name: laundryService?.name,
+            serviceId: laundryService?.serviceId,
+            description: laundryService?.description,
+            unit: laundryService?.unit,
+            price: laundryService?.price,
           },
         });
 
