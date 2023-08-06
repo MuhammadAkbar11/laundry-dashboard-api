@@ -1,4 +1,4 @@
-import { CustomerLevel, Prisma } from "@prisma/client";
+import { CustomerLevel } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 
