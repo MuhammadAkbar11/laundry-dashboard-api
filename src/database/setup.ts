@@ -120,7 +120,7 @@ const main = async () => {
             field: item.field,
             tbName: item.tbName,
             prefix: item.prefix,
-            value: 0,
+            value: 1,
           },
         });
 
@@ -155,14 +155,18 @@ const main = async () => {
       prefix: field.prefix,
     }))
   );
+
+  const resultTableNames = mapConfig.map(i => chalk.green(`\"${i.table}\"`));
+  const resultFields = mapConfig.map(i => chalk.green(`\"${i.field}\"`));
+
   console.log(`
 \`\`\`
-export type IncTablesNameTypes = ${mapConfig
-    .map(i => `\"${i.table}\"`)
-    .join(" | ")};
-export type IncTablesFieldTypes = ${mapConfig
-    .map(i => `\"${i.field}\"`)
-    .join(" | ")};
+${chalk.cyan("export")} ${chalk.cyan("type")} IncTablesNameTypes = ${[
+    ...new Set(resultTableNames),
+  ].join(" | ")};
+${chalk.cyan("export")} ${chalk.cyan(
+    "type"
+  )} IncTablesFieldTypes = ${resultFields.join(" | ")};
 \`\`\``);
   console.log("");
   logger.info("[DATABASE] setup database successfully");
