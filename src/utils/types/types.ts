@@ -7,6 +7,7 @@ export type RoleTypes = keyof typeof ROLES;
 
 export type IncTablesNameTypes =
   | "tb_users"
+  | "tb_members"
   | "tb_customer_levels"
   | "tb_customers"
   | "tb_services"
@@ -20,6 +21,7 @@ export type IncTablesNameTypes =
 
 export type IncTablesFieldTypes =
   | "user_id"
+  | "member_id"
   | "cs_level_id"
   | "customer_id"
   | "service_id"

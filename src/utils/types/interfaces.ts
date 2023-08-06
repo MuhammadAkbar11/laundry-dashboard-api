@@ -7,10 +7,16 @@ export interface ISession extends Omit<prisma.User, "password"> {
   exp: number;
 }
 
-export interface IJwtPayload {
+export interface IMemberSession extends Omit<prisma.Member, "password"> {
+  session: string;
+  iat: number;
+  exp: number;
+}
+
+export interface IJwtPayload<T> {
   valid: boolean;
   expired: boolean;
-  decoded: ISession | null;
+  decoded: T | null;
 }
 
 export interface ErrorData {
