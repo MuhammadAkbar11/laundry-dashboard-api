@@ -5,9 +5,9 @@ export const createUserSchema = z.object({
     name: z.string().nonempty("Name is required"),
     email: z.string().nonempty("Email is required").email("Not a valid Email"),
     role: z
-      .enum(["ADMIN", "OPERATOR", "OFFICER"])
+      .enum(["ADMIN", "CASHIER", "OFFICER"])
       .optional()
-      .default("OPERATOR"),
+      .default("CASHIER"),
   }),
 });
 

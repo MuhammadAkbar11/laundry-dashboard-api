@@ -57,7 +57,7 @@ class UserController extends BaseController {
       ORsearching.push({ role: { equals: roleByQuery[0] as Role } });
     }
     if (statusByQuery.length !== 0) {
-      ORsearching.push({ status: { equals: roleByQuery[0] as Status } });
+      ORsearching.push({ status: { equals: statusByQuery[0] as Status } });
     }
 
     return ORsearching;
@@ -100,10 +100,6 @@ class UserController extends BaseController {
               NOT: { email: { contains: "superadmin" } },
             },
           ],
-          // NOT: {
-          //   userId: req.user?.userId,
-          //   email: { contains: "superadmin" },
-          // },
         },
         skip,
         orderBy: sorting,
@@ -220,7 +216,7 @@ class UserController extends BaseController {
     const userIdParam = req.params.userId as string;
 
     try {
-      const user = await this.service.getById(userIdParam, true);
+      const user = await this.service.getById(userIdParam);
 
       if (!user) {
         throw this.error(

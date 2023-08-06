@@ -4,7 +4,6 @@ import { BindAllMethods } from "../../utils/decorators.utils";
 import { omit } from "lodash";
 import { BaseService } from "../../core";
 import { hashPassword } from "../../utils/auth.utils";
-import { DEFAULT_USER_PASSWORD } from "../../configs/vars.config";
 
 @BindAllMethods
 class UserService extends BaseService {
@@ -28,20 +27,10 @@ class UserService extends BaseService {
     }
   }
 
-  public async getById(
-    id: string,
-    isInclude?: boolean
-  ): Promise<User | void | null> {
+  public async getById(id: string): Promise<User | void | null> {
     try {
       return await this.prisma.user.findUnique({
         where: { userId: id },
-        include: isInclude
-          ? {
-              laundryQueues: {
-                include: { laundries: true, laundryRoom: true },
-              },
-            }
-          : null,
       });
     } catch (error) {
       this.logger.error("[EXCEPTION] getUserById");
