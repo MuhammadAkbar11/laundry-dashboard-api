@@ -17,8 +17,8 @@ export function printDivider(): string {
 }
 
 export function removePunctuation(price: string): number {
-  const withoutDot = price.replace(/\./g, "");
-  const withoutComma = withoutDot.replace(/,/g, "");
+  const withoutDot = price?.replace(/\./g, "");
+  const withoutComma = withoutDot?.replace(/,/g, "");
   const numericPrice = parseInt(withoutComma, 10);
 
   return numericPrice;
@@ -145,4 +145,30 @@ export function searchArray<T>(array: T[], searchTerm: string): T[] {
     }
     return false;
   });
+}
+
+export function isDataValid(data: any): boolean {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+
+  for (const key in data) {
+    if (!data.hasOwnProperty(key)) {
+      continue;
+    }
+
+    const value = data[key];
+
+    if (value === null || value === "" || value === "NULL") {
+      return false;
+    }
+
+    if (typeof value === "object" && !Array.isArray(value)) {
+      if (!isDataValid(value)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
