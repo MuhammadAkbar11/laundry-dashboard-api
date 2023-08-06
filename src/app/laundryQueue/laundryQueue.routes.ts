@@ -9,6 +9,7 @@ import {
   readByIDLaundryQueueSchema,
   readLaundryQueueSchema,
   updateLaundryQueueDeliveredSchema,
+  updateLaundryQueueStatusSchema,
   // updateLaundryQueueSchema,
 } from "./laundryQueue.schema";
 import { requiredUser } from "../../middlewares/auth.middleware";
@@ -58,6 +59,13 @@ class LaundryQueueRouter extends BaseRouter<LaundryQueueController> {
         requiredUser,
         [validateResource(updateLaundryQueueDeliveredSchema)],
         this.controller.putDelivered
+      );
+    this.router
+      .route("/status/:laundryQueueId")
+      .put(
+        requiredUser,
+        [validateResource(updateLaundryQueueStatusSchema)],
+        this.controller.putStatus
       );
   }
 }

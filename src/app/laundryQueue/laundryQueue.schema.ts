@@ -1,13 +1,16 @@
+import { LaundryQueuePaymentStatus, LaundryQueueStatus } from "@prisma/client";
 import { z } from "zod";
 
 export const createLaundryQueueSchema = z.object({
   body: z
     .object({
-      queuePaymentStatus: z.enum(["PENDING", "PAID", "CANCELLED"]).optional(),
-      status: z.enum(["ONHOLD", "IN_PROGRESS", "FINISHED"]).optional(),
+      queuePaymentStatus: z.nativeEnum(LaundryQueuePaymentStatus).optional(),
+      status: z.nativeEnum(LaundryQueueStatus).optional(),
       deliveryType: z.enum(["DELIVERED", "PICKUP"]).optional(),
       finishedAt: z.string().optional(),
       deliveryAt: z.string().optional(),
+      pickupAt: z.string().optional(),
+      deliveryAddress: z.string().optional(),
       customerId: z.string().max(21),
       note: z.string(),
     })
@@ -25,6 +28,17 @@ export const createLaundryQueueSchema = z.object({
 export const updateLaundryQueueDeliveredSchema = z.object({
   params: z.object({
     laundryQueueId: z.string().max(21),
+  }),
+});
+
+export const updateLaundryQueueStatusSchema = z.object({
+  params: z.object({
+    laundryQueueId: z.string().max(21),
+  }),
+  body: z.object({
+    status: z.nativeEnum(LaundryQueueStatus, {
+      required_error: "status is required",
+    }),
   }),
 });
 
@@ -68,6 +82,9 @@ export type CreateLaundryQueuePayload = z.infer<
 >;
 export type UpdateLaundryQueueDeliveredPayload = z.infer<
   typeof updateLaundryQueueDeliveredSchema
+>;
+export type UpdateLaundryQueueStatusPayload = z.infer<
+  typeof updateLaundryQueueStatusSchema
 >;
 export type DeleteLaundryQueuePayload = z.infer<
   typeof deleteLaundryQueueSchema

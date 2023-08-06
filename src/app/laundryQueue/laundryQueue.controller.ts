@@ -1,10 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import {
-  LaundryQueue,
-  LaundryQueuePaymentStatus,
-  LaundryQueueStatus,
-  Prisma,
-} from "@prisma/client";
+import { LaundryQueue, Prisma } from "@prisma/client";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseController } from "../../core";
 import Pagination from "../../helpers/pagination.helper";
@@ -15,6 +10,7 @@ import {
   ReadByIDLaundryQueuePayload,
   ReadLaundryQueuePayload,
   UpdateLaundryQueueDeliveredPayload,
+  UpdateLaundryQueueStatusPayload,
 } from "./laundryQueue.schema";
 import CustomerService from "../customer/customer.service";
 import { isNumericQuery, parsingResult } from "../../utils/utils";
@@ -56,12 +52,6 @@ class LaundryQueueController extends BaseController {
           total: sortBy as Prisma.SortOrder,
         },
       };
-    } else if (orderBy?.trim() === "userName") {
-      sortingOptions = {
-        user: {
-          name: sortBy as Prisma.SortOrder,
-        },
-      };
     }
 
     return sortingOptions;
@@ -96,15 +86,7 @@ class LaundryQueueController extends BaseController {
               contains: _search,
             },
           },
-          {
-            user: {
-              name: {
-                contains: _search,
-              },
-            },
-          },
           { customerId: { contains: _search } },
-          { userId: { contains: _search } },
           {
             customer: {
               name: { contains: _search },
@@ -130,10 +112,8 @@ class LaundryQueueController extends BaseController {
         skip,
         orderBy: sorting,
         take: limit,
-
         include: {
           customer: true,
-          user: true,
           laundryRoom: true,
           _count: {
             select: { laundries: true },
@@ -199,7 +179,13 @@ class LaundryQueueController extends BaseController {
     next: NextFunction
   ) {
     try {
-      const { customerId: customerIdParam, note, deliveryType } = req.body;
+      const {
+        customerId: customerIdParam,
+        note,
+        deliveryType,
+        pickupAt,
+        deliveryAddress,
+      } = req.body;
 
       const customer = await this.customerService.getById(customerIdParam, {
         include: { customerLevel: true, laundryQueues: true },
@@ -215,9 +201,10 @@ class LaundryQueueController extends BaseController {
 
       const newQueue = await this.service.create({
         customerId: customerIdParam,
-        userId: req?.user?.userId as string,
         status: "ONHOLD",
         queuePaymentStatus: "PENDING",
+        pickupAt: pickupAt,
+        deliveryAddress: deliveryAddress,
         deliveryType: deliveryType || "PICKUP",
         note: note,
       });
@@ -279,6 +266,75 @@ class LaundryQueueController extends BaseController {
       const updatedLaundryQueue = await this.service.updateDelivered(
         laundryQueueIdParam,
         existingLaundryQueue.customerId
+      );
+
+      res.status(201).json({
+        message: this.getSuccessMessage(
+          "update",
+          "Antrian",
+          laundryQueueIdParam
+        ),
+        laundryQueue: parsingResult(updatedLaundryQueue),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async putStatus(
+    req: Request<
+      UpdateLaundryQueueStatusPayload["params"],
+      {},
+      UpdateLaundryQueueStatusPayload["body"]
+    >,
+    res: Response,
+    next: NextFunction
+  ) {
+    const laundryQueueIdParam = req.params.laundryQueueId as string;
+
+    try {
+      const existingLaundryQueue = await this.prisma.laundryQueue.findUnique({
+        where: { laundryQueueId: laundryQueueIdParam },
+        include: { laundries: true },
+      });
+
+      if (!existingLaundryQueue) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage(
+            "readByIdNotFound",
+            "Antrian",
+            laundryQueueIdParam
+          )
+        );
+      }
+
+      if (
+        existingLaundryQueue?.queuePaymentStatus !== "FINISHED" &&
+        req.body.status === "FINISHED"
+      ) {
+        throw this.error(
+          "NOT_FOUND",
+          400,
+          `Gagal memperbaharui status Antrian "${laundryQueueIdParam}", karena belum menyelesaikan pembayaran`
+        );
+      }
+
+      if (
+        existingLaundryQueue?.laundries?.length === 0 &&
+        req.body.status === "FINISHED"
+      ) {
+        throw this.error(
+          "BAD_REQUEST",
+          this.methodStatus.BAD_REQUEST,
+          `Belum ada cucian untuk Antrian '${laundryQueueIdParam}'. Silahkan tambahkan cucian terlebih dahulu`
+        );
+      }
+
+      const updatedLaundryQueue = await this.service.updateStatus(
+        laundryQueueIdParam,
+        req.body.status
       );
 
       res.status(201).json({
