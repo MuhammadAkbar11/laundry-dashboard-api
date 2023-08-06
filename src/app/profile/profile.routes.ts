@@ -3,6 +3,10 @@ import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseRouter } from "../../core";
 import ProfileController from "./profile.controller";
 import { requiredUser } from "../../middlewares/auth.middleware";
+import {
+  deserializeMember,
+  requiredMember,
+} from "../../middlewares/authMember.middleware";
 
 @BindAllMethods
 class ProfileRouter extends BaseRouter<ProfileController> {
@@ -11,7 +15,10 @@ class ProfileRouter extends BaseRouter<ProfileController> {
   }
 
   protected routes(): void {
-    this.router.get("/", requiredUser, this.controller.get);
+    this.router
+      .route("/member")
+      .get(deserializeMember, requiredMember, this.controller.getMember);
+    this.router.route("/user").get(requiredUser, this.controller.get);
   }
 }
 
