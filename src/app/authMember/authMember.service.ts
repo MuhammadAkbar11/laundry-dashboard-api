@@ -14,6 +14,7 @@ import JWT from "../../helpers/jwt.helper";
 import {
   ACCESS_TOKEN_MAX_AGE,
   ACCESS_TOKEN_TTL,
+  MODE,
   REFRESH_TOKEN_MAX_AGE,
   REFRESH_TOKEN_TTL,
 } from "../../configs/vars.config";
@@ -190,14 +191,15 @@ class AuthMemberService extends BaseService {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: MODE === "development" ? "strict" : "none",
       path: "/",
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
     res.cookie("accessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
-      sameSite: "strict",
+      sameSite: MODE === "development" ? "strict" : "none",
+
       path: "/",
       httpOnly: true,
     });
@@ -208,12 +210,14 @@ class AuthMemberService extends BaseService {
   public resetSessionToken(res: express.Response) {
     res.cookie("refreshToken", null, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: MODE === "development" ? "strict" : "none",
+
       path: "/",
     });
 
     res.cookie("accessToken", null, {
-      sameSite: "strict",
+      sameSite: MODE === "development" ? "strict" : "none",
+
       path: "/",
       httpOnly: true,
     });
