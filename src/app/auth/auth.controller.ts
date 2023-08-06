@@ -184,7 +184,7 @@ class AuthController extends BaseController {
         throw this.error(
           "AUTH",
           401,
-          "Logout gagal, silahkan di coba lagi nanti!"
+          "Logout gagal, silahkan dicoba lagi nanti!"
         );
       }
 

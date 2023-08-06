@@ -5,7 +5,6 @@ import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseService } from "../../core";
 import { comparePassword, hashPassword } from "../../utils/auth.utils";
 import JWT from "../../helpers/jwt.helper";
-
 import {
   ACCESS_TOKEN_MAX_AGE,
   ACCESS_TOKEN_TTL,
@@ -29,6 +28,25 @@ export interface IUserPayload
 class AuthService extends BaseService {
   constructor() {
     super();
+  }
+
+  public async createSession(input: ISessionPayload) {
+    const { userId, userAgent, valid, ipAddress, deviceType } = input;
+    try {
+      return await this.prisma.session.create({
+        data: {
+          userId: userId,
+          userAgent: userAgent,
+          valid: valid as boolean,
+          ipAddress: ipAddress,
+          deviceType: deviceType,
+          expired: dateUTC().day(7).toISOString(),
+        },
+      });
+    } catch (error) {
+      this.logger.error(`[EXCEPTION] updateSessionStatusById`);
+      this.throwError(error);
+    }
   }
 
   public async signUpUser(input: IUserPayload) {
@@ -96,25 +114,6 @@ class AuthService extends BaseService {
     } catch (error) {
       this.logger.error(`[EXCEPTION] validateEmailAndPassword`);
       return false;
-    }
-  }
-
-  public async createSession(input: ISessionPayload) {
-    const { userId, userAgent, valid, ipAddress, deviceType } = input;
-    try {
-      return await this.prisma.session.create({
-        data: {
-          userId: userId,
-          userAgent: userAgent,
-          valid: valid as boolean,
-          ipAddress: ipAddress,
-          deviceType: deviceType,
-          expired: dateUTC().day(7).toISOString(),
-        },
-      });
-    } catch (error) {
-      this.logger.error(`[EXCEPTION] updateSessionStatusById`);
-      this.throwError(error);
     }
   }
 
