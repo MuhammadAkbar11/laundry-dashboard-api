@@ -5,6 +5,8 @@ import prisma from "../../configs/prisma.config";
 import { seedInitUsers } from "./user.seed";
 import { seedInitCustomerLevels } from "./customerlvl.seed";
 import { seedGeneratedCustomer } from "./customer.seed";
+import { seedInitServices } from "./service.seed";
+import { seedInitSettings } from "./setting.seed";
 
 dotenvConfig;
 
@@ -46,6 +48,8 @@ const prompt = inquirer.createPromptModule();
         return await Promise.all([
           seedInitUsers(trx),
           seedInitCustomerLevels(trx),
+          seedInitServices(trx),
+          seedInitSettings(trx),
         ]);
       });
 

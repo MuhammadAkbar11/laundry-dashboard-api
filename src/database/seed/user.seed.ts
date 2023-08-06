@@ -18,7 +18,7 @@ const userData: Omit<prisma.User, "createdAt" | "updatedAt" | "userId">[] = [
     name: "Admin",
     avatar: "/images/avatar.jpeg",
     password: "password123",
-    role: "OPERATOR",
+    role: "OFFICER",
     status: "ACTIVE",
   },
   {
