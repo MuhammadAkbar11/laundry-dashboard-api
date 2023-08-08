@@ -14,6 +14,7 @@ import JWT from "../../helpers/jwt.helper";
 import {
   ACCESS_TOKEN_MAX_AGE,
   ACCESS_TOKEN_TTL,
+  CLIENT_DOMAIN,
   MODE,
   REFRESH_TOKEN_MAX_AGE,
   REFRESH_TOKEN_TTL,
@@ -189,19 +190,36 @@ class AuthMemberService extends BaseService {
       { expiresIn: REFRESH_TOKEN_TTL } // 7d
     );
 
+    // res.cookie("refreshToken", refreshToken, {
+    //   httpOnly: true,
+    //   sameSite: MODE === "development" ? "strict" : "none",
+    //   path: "/",
+    //   maxAge: REFRESH_TOKEN_MAX_AGE,
+    // });
+
+    // res.cookie("accessToken", accessToken, {
+    //   maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
+    //   sameSite: MODE === "development" ? "strict" : "none",
+    //   path: "/",
+    //   httpOnly: true,
+    // });
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      sameSite: MODE === "development" ? "strict" : "none",
+      sameSite: MODE === "development" ? "strict" : "lax",
       path: "/",
+      secure: MODE === "development" ? false : true,
+      domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
     res.cookie("accessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
-      sameSite: MODE === "development" ? "strict" : "none",
-
-      path: "/",
       httpOnly: true,
+      sameSite: MODE === "development" ? "strict" : "lax",
+      path: "/",
+      secure: MODE === "development" ? false : true,
+      domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
     });
 
     return { accessToken, refreshToken };
@@ -210,17 +228,28 @@ class AuthMemberService extends BaseService {
   public resetSessionToken(res: express.Response) {
     res.cookie("refreshToken", null, {
       httpOnly: true,
-      sameSite: MODE === "development" ? "strict" : "none",
-
+      sameSite: MODE === "development" ? "strict" : "lax",
       path: "/",
     });
 
     res.cookie("accessToken", null, {
-      sameSite: MODE === "development" ? "strict" : "none",
-
+      sameSite: MODE === "development" ? "strict" : "lax",
       path: "/",
       httpOnly: true,
     });
+    // res.cookie("refreshToken", null, {
+    //   httpOnly: true,
+    //   sameSite: MODE === "development" ? "strict" : "none",
+
+    //   path: "/",
+    // });
+
+    // res.cookie("accessToken", null, {
+    //   sameSite: MODE === "development" ? "strict" : "none",
+
+    //   path: "/",
+    //   httpOnly: true,
+    // });
   }
 
   // findSessionById

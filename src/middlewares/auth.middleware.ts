@@ -5,7 +5,11 @@ import JWT from "../helpers/jwt.helper";
 import AuthService from "../app/auth/auth.service";
 import logger from "../configs/logger.config";
 
-import { ACCESS_TOKEN_MAX_AGE } from "../configs/vars.config";
+import {
+  ACCESS_TOKEN_MAX_AGE,
+  CLIENT_DOMAIN,
+  MODE,
+} from "../configs/vars.config";
 import { ISession } from "../utils/types/interfaces";
 
 const authService = new AuthService();
@@ -48,10 +52,18 @@ function setNewAccessTokenCookie(
 ) {
   const userAgent = req.get("user-agent");
 
+  // res.cookie("accessToken", accessToken, {
+  //   maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
+  //   sameSite: "strict",
+  //   path: "/",
+  // });
   res.cookie("accessToken", accessToken, {
     maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
-    sameSite: "strict",
+    httpOnly: true,
+    sameSite: MODE === "development" ? "strict" : "lax",
     path: "/",
+    secure: MODE === "development" ? false : true,
+    domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
   });
   if (userAgent?.includes("Postman")) {
     logger.info("[SESSION] Set x-access-token for Postman");
@@ -66,7 +78,10 @@ export async function deserializeUser(
 ) {
   try {
     const { accessToken, refreshToken } = getTokens(req);
-
+    logger.info(
+      { accessToken, refreshToken },
+      "[SESSION] Status AccessToken & RefreshToken"
+    );
     if (!accessToken) {
       const { decoded: refresh } = refreshToken
         ? JWT.verifyJWT<ISession>(refreshToken)

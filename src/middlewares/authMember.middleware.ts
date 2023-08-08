@@ -3,7 +3,11 @@ import { Member } from "@prisma/client";
 import _ from "lodash";
 import JWT from "../helpers/jwt.helper";
 import logger from "../configs/logger.config";
-import { ACCESS_TOKEN_MAX_AGE } from "../configs/vars.config";
+import {
+  ACCESS_TOKEN_MAX_AGE,
+  CLIENT_DOMAIN,
+  MODE,
+} from "../configs/vars.config";
 import AuthMemberService from "../app/authMember/authMember.service";
 import { IMemberSession } from "../utils/types/interfaces";
 
@@ -49,8 +53,11 @@ function setNewAccessTokenCookie(
 
   res.cookie("accessToken", accessToken, {
     maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
-    sameSite: "strict",
+    httpOnly: true,
+    sameSite: MODE === "development" ? "strict" : "lax",
     path: "/",
+    secure: MODE === "development" ? false : true,
+    domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
   });
   if (memberAgent?.includes("Postman")) {
     logger.info("[SESSION][MEMBER] Set x-access-token for Postman");
@@ -65,6 +72,11 @@ export async function deserializeMember(
 ) {
   try {
     const { accessToken, refreshToken } = getTokens(req);
+
+    logger.info(
+      { accessToken, refreshToken },
+      "[SESSION] Status AccessToken & RefreshToken"
+    );
 
     if (!accessToken) {
       const { decoded: refresh } = refreshToken
