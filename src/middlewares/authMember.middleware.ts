@@ -56,8 +56,8 @@ function setNewAccessTokenCookie(
     httpOnly: true,
     sameSite: MODE === "development" ? "strict" : "lax",
     path: "/",
-    secure: MODE === "development" ? false : true,
-    domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
+    secure: MODE !== "development",
+    // domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
   });
   if (memberAgent?.includes("Postman")) {
     logger.info("[SESSION][MEMBER] Set x-access-token for Postman");
