@@ -209,7 +209,7 @@ class AuthMemberService extends BaseService {
       sameSite: "none",
       path: "/",
       secure: MODE !== "development",
-      // domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
+      domain: MODE !== "development" ? CLIENT_DOMAIN : undefined,
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
@@ -219,7 +219,7 @@ class AuthMemberService extends BaseService {
       sameSite: "none",
       path: "/",
       secure: MODE !== "development",
-      // domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
+      domain: MODE !== "development" ? CLIENT_DOMAIN : undefined,
     });
 
     return { accessToken, refreshToken };

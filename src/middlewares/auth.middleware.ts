@@ -51,19 +51,13 @@ function setNewAccessTokenCookie(
   accessToken: string
 ) {
   const userAgent = req.get("user-agent");
-
-  // res.cookie("accessToken", accessToken, {
-  //   maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
-  //   sameSite: "strict",
-  //   path: "/",
-  // });
   res.cookie("accessToken", accessToken, {
     maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
     httpOnly: true,
     sameSite: MODE !== "development" ? "none" : "strict",
     path: "/",
     secure: MODE !== "development",
-    // domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
+    domain: MODE !== "development" ? CLIENT_DOMAIN : undefined,
   });
   if (userAgent?.includes("Postman")) {
     logger.info("[SESSION] Set x-access-token for Postman");
