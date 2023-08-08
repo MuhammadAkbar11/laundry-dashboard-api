@@ -28,6 +28,7 @@ import AuthMemberRouter from "./app/authMember/authMember.routes";
 import PublicRouter from "./app/public/public.routes";
 import MemberRouter from "./app/member/member.routes";
 import SettingRouter from "./app/setting/setting.routes";
+import logger from "./configs/logger.config";
 
 class App {
   public server;
@@ -46,11 +47,12 @@ class App {
     // console.log(ENV.ALLOWED_ORIGINS);
 
     if (ENV.MODE === "production") {
+      logger.info(`[SERVER] origin ${ENV.ALLOWED_ORIGINS}`);
       this.server.use(
         cors({
           origin: origins,
           methods: ["GET", "POST", "PUT", "DELETE"],
-          allowedHeaders: ["*"],
+          allowedHeaders: ["Content-Type"],
           exposedHeaders: ["*", "Authorization"],
           credentials: true,
         })
