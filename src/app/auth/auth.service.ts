@@ -8,6 +8,8 @@ import JWT from "../../helpers/jwt.helper";
 import {
   ACCESS_TOKEN_MAX_AGE,
   ACCESS_TOKEN_TTL,
+  ALLOWED_ORIGINS,
+  CLIENT_DOMAIN,
   MODE,
   REFRESH_TOKEN_MAX_AGE,
   REFRESH_TOKEN_TTL,
@@ -160,14 +162,21 @@ class AuthService extends BaseService {
       httpOnly: true,
       sameSite: MODE === "development" ? "strict" : "none",
       path: "/",
+      secure: MODE === "development" ? false : true,
+      domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
     res.cookie("accessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
+      // sameSite: MODE === "development" ? "strict" : "none",
+      // path: "/",
+      // httpOnly: true,
+      httpOnly: true,
       sameSite: MODE === "development" ? "strict" : "none",
       path: "/",
-      httpOnly: true,
+      secure: MODE === "development" ? false : true,
+      domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
     });
 
     return { accessToken, refreshToken };

@@ -84,6 +84,7 @@ export const MODE = mode;
 export const DATABASE_URL = process.env.DATABASE_UR as string;
 export const ALLOWED_ORIGINS =
   (process.env?.ALLOWED_ORIGINS as string) || "http://localhost:3379";
+export const CLIENT_DOMAIN = process.env?.CLIENT_DOMAIN as string;
 export const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 export const PUBLIC_KEY = process.env.PUBLIC_KEY as string;
 export const OAUTH_REFRESH_TOKEN = process.env?.OAUTH_REFRESH_TOKEN as string;
