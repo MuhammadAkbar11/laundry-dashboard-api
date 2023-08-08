@@ -42,15 +42,28 @@ class App {
     const origins = ENV.ALLOWED_ORIGINS.includes("|")
       ? ENV.ALLOWED_ORIGINS?.split("|")
       : ENV.ALLOWED_ORIGINS;
-    this.server.use(
-      cors({
-        origin: origins,
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-        exposedHeaders: ["*", "Authorization"],
-        credentials: true,
-      })
-    );
+    // console.log("TEST", ENV.ALLOWED_ORIGINS.split("|"));
+    // console.log(ENV.ALLOWED_ORIGINS);
+
+    if (ENV.MODE === "production") {
+      this.server.use(
+        cors({
+          origin: origins,
+          methods: ["GET", "POST", "PUT", "DELETE"],
+          // allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+          exposedHeaders: ["*", "Authorization"],
+          credentials: true,
+        })
+      );
+    } else {
+      this.server.use(
+        cors({
+          origin: origins,
+          methods: ["GET", "POST", "PUT", "DELETE"],
+          credentials: true,
+        })
+      );
+    }
 
     this.server.use(express.urlencoded({ extended: false }));
     this.server.use(express.json());
