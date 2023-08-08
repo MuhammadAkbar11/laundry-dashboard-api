@@ -46,14 +46,14 @@ class App {
     // console.log("TEST", ENV.ALLOWED_ORIGINS.split("|"));
     // console.log(ENV.ALLOWED_ORIGINS);
 
-    if (ENV.MODE === "production") {
+    if (ENV.MODE === "development") {
       logger.info(`[SERVER] origin ${ENV.ALLOWED_ORIGINS}`);
       this.server.use(
         cors({
           origin: origins,
           methods: ["GET", "POST", "PUT", "DELETE"],
-          allowedHeaders: ["Content-Type"],
-          exposedHeaders: ["*", "Authorization"],
+          // allowedHeaders: ["Content-Type"],
+          // exposedHeaders: ["*", "Authorization"],
           credentials: true,
         })
       );
