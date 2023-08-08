@@ -160,9 +160,9 @@ class AuthService extends BaseService {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      sameSite: MODE === "development" ? "strict" : "lax",
+      sameSite: "none",
       path: "/",
-      secure: MODE === "development" ? false : true,
+      secure: MODE !== "development",
       domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
@@ -170,9 +170,9 @@ class AuthService extends BaseService {
     res.cookie("accessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
       httpOnly: true,
-      sameSite: MODE === "development" ? "strict" : "lax",
+      sameSite: "none",
       path: "/",
-      secure: MODE === "development" ? false : true,
+      secure: MODE !== "development",
       domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
     });
 
@@ -182,12 +182,12 @@ class AuthService extends BaseService {
   public resetSessionToken(res: express.Response) {
     res.cookie("refreshToken", null, {
       httpOnly: true,
-      sameSite: MODE === "development" ? "strict" : "lax",
+      sameSite: "none",
       path: "/",
     });
 
     res.cookie("accessToken", null, {
-      sameSite: MODE === "development" ? "strict" : "lax",
+      sameSite: "none",
       path: "/",
       httpOnly: true,
     });

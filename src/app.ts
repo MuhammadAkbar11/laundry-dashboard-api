@@ -46,6 +46,8 @@ class App {
       cors({
         origin: origins,
         methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+        exposedHeaders: ["*", "Authorization"],
         credentials: true,
       })
     );
