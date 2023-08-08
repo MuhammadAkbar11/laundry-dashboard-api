@@ -211,7 +211,7 @@ export const DB_AUTOINC_COLOUMNS: {
     columns: [{ name: "laundry_room_id", prefix: "LDRM" }],
   },
   {
-    table: "tb_history_service",
+    table: "tb_history_services",
     columns: [{ name: "history_service_id", prefix: "HLSV" }],
   },
   {
