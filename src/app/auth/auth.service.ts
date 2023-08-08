@@ -160,7 +160,7 @@ class AuthService extends BaseService {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      sameSite: "none",
+      sameSite: MODE !== "development" ? "none" : "strict",
       path: "/",
       secure: MODE !== "development",
       // domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
@@ -170,7 +170,7 @@ class AuthService extends BaseService {
     res.cookie("accessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
       httpOnly: true,
-      sameSite: "none",
+      sameSite: MODE !== "development" ? "none" : "strict",
       path: "/",
       secure: MODE !== "development",
       // domain: MODE === "development" ? undefined : CLIENT_DOMAIN,

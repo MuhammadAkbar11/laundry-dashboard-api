@@ -60,7 +60,7 @@ function setNewAccessTokenCookie(
   res.cookie("accessToken", accessToken, {
     maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
     httpOnly: true,
-    sameSite: MODE === "development" ? "strict" : "lax",
+    sameSite: MODE !== "development" ? "none" : "strict",
     path: "/",
     secure: MODE !== "development",
     // domain: MODE === "development" ? undefined : CLIENT_DOMAIN,
