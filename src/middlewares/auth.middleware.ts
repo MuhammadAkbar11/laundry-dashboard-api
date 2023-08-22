@@ -72,10 +72,10 @@ export async function deserializeUser(
 ) {
   try {
     const { accessToken, refreshToken } = getTokens(req);
-    logger.info(
-      { accessToken, refreshToken },
-      "[SESSION] Status AccessToken & RefreshToken"
-    );
+    // logger.info(
+    //   { accessToken, refreshToken },
+    //   "[SESSION] Status AccessToken & RefreshToken"
+    // );
     if (!accessToken) {
       const { decoded: refresh } = refreshToken
         ? JWT.verifyJWT<ISession>(refreshToken)

@@ -10,6 +10,15 @@ export const createPaymentSchema = z.object({
   }),
 });
 
+export const postRespondPaymentSchema = z.object({
+  params: z.object({
+    paymentId: z.string().max(21),
+  }),
+  body: z.object({
+    type: z.enum(["ACCEPT", "REJECT"]),
+  }),
+});
+
 export const readPaymentSchema = z.object({
   query: z.object({
     _type: z
@@ -31,6 +40,9 @@ export const readPaymentByInvoiceSchema = z.object({
 });
 
 export type CreatePaymentPayload = z.infer<typeof createPaymentSchema>;
+export type PostRespondPaymentPayload = z.infer<
+  typeof postRespondPaymentSchema
+>;
 export type ReadPaymentPayload = z.infer<typeof readPaymentSchema>;
 export type ReadPaymentByInvoicePayload = z.infer<
   typeof readPaymentByInvoiceSchema

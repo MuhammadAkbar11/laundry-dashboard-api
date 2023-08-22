@@ -4,6 +4,7 @@ import { BaseController } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import {
   CreatePaymentPayload,
+  PostRespondPaymentPayload,
   ReadPaymentByInvoicePayload,
   ReadPaymentPayload,
 } from "./payment.schema";
@@ -104,6 +105,7 @@ class PaymentController extends BaseController {
       let whereQuery: Prisma.PaymentWhereInput = {
         laundryQueue: {
           status: "FINISHED",
+          queuePaymentStatus: "FINISHED",
         },
       };
 
@@ -221,6 +223,51 @@ class PaymentController extends BaseController {
       res.status(201).json({
         message: this.getSuccessMessage("create", "Pembayaran"),
         data: parsingResult(newPayment),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async postRespond(
+    req: Request<
+      PostRespondPaymentPayload["params"],
+      {},
+      PostRespondPaymentPayload["body"]
+    >,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paymentId = req.params.paymentId as string;
+      const { type } = req.body;
+
+      const existingPayment = await this.prisma.payment.findUnique({
+        where: { paymentId: paymentId },
+      });
+
+      if (!existingPayment) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Pembayaran", paymentId)
+        );
+      }
+
+      if (type === "ACCEPT") {
+        const data = await this.service.accPayment({
+          payment: existingPayment,
+          userId: req?.user?.userId as string,
+        });
+        return res.status(201).json({
+          message: this.getSuccessMessage("update", "Pembayaran"),
+          data: parsingResult(data),
+        });
+      }
+
+      res.status(201).json({
+        message: this.getSuccessMessage("update", "Pembayaran"),
+        data: type,
       });
     } catch (error: any) {
       this.nextError(next, error);

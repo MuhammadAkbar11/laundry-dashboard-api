@@ -153,13 +153,14 @@ class PaymentService extends BaseService {
           field: "cashflow_id",
           length: 7,
         });
-        const cashflowInvoice = await this.generateIncField({
-          prismaTx: tx,
-          tableName: "tb_cashflow",
-          field: "cashflow_invoice",
-          customPrefix: dateIndoWIB().format("DDMMYY"),
-          length: 12,
-        });
+        const cashflowInvoice = paymentInvoice;
+        // const cashflowInvoice = await this.generateIncField({
+        //   prismaTx: tx,
+        //   tableName: "tb_cashflow",
+        //   field: "cashflow_invoice",
+        //   customPrefix: dateIndoWIB().format("DDMMYY"),
+        //   length: 12,
+        // });
 
         const createdCashflow = await tx.cashFlow.create({
           data: {
@@ -198,6 +199,106 @@ class PaymentService extends BaseService {
       return await this.prisma.payment.count({ ...args });
     } catch (error) {
       this.logger.error("[EXCEPTION] countPayment");
+      this.throwError(error);
+    }
+  }
+
+  public async accPayment(payload: { payment: Payment; userId: string }) {
+    try {
+      const result = await this.prisma.$transaction(async tx => {
+        const laundryQueue = await tx.laundryQueue.findUnique({
+          where: { laundryQueueId: payload.payment.laundryQueueId },
+          include: {
+            laundryRoom: true,
+            laundries: {
+              include: {
+                historyService: true,
+              },
+            },
+            customer: { include: { customerLevel: true } },
+            _count: { select: { laundries: true } },
+          },
+        });
+
+        const roomTotalPrice = Number(laundryQueue?.laundryRoom?.total);
+        const customerDiscount = Number(
+          laundryQueue?.customer?.customerLevel?.discount
+        );
+        let discount = (roomTotalPrice * customerDiscount) / 100;
+
+        const paid = roomTotalPrice - discount;
+        const cashback = paid - (roomTotalPrice - discount);
+
+        const updatedPayment = await tx.payment.update({
+          where: { paymentId: payload?.payment.paymentId as string },
+          data: {
+            totalLaundry: laundryQueue?._count.laundries as number,
+            price: roomTotalPrice,
+            discount: discount,
+            totalPrice: roomTotalPrice - discount,
+            paid: paid,
+            cashback: cashback,
+            userId: payload.userId,
+            createdAt: dateIndoWIB().format(),
+            updatedAt: dateIndoWIB().format(),
+          },
+        });
+
+        const countCashflow = await tx.cashFlow.count();
+        let sumCashflow = 0;
+
+        if (countCashflow > 0) {
+          const argSumExp = await tx.cashFlow.aggregate({
+            _sum: { total: true },
+          });
+          sumCashflow = Number(argSumExp._sum.total);
+        }
+
+        const cashflowId = await this.generateIncField({
+          prismaTx: tx,
+          tableName: "tb_cashflow",
+          field: "cashflow_id",
+          length: 7,
+        });
+
+        const cashflowInvoice = updatedPayment.invoice;
+
+        // const cashflowInvoice = await this.generateIncField({
+        //   prismaTx: tx,
+        //   tableName: "tb_cashflow",
+        //   field: "cashflow_invoice",
+        //   customPrefix: dateIndoWIB().format("DDMMYY"),
+        //   length: 12,
+        // });
+
+        const createdCashflow = await tx.cashFlow.create({
+          data: {
+            cashflowId: cashflowId,
+            cashflowInvoice: cashflowInvoice,
+            description: "Pembayaran Cucian",
+            cashflowType: "IN",
+            total: roomTotalPrice - discount,
+            balance: Number(sumCashflow) + Number(roomTotalPrice - discount),
+          },
+        });
+
+        const updatedLaunryQueue = await tx.laundryQueue.update({
+          where: { laundryQueueId: laundryQueue?.laundryQueueId },
+          data: {
+            queuePaymentStatus: "FINISHED",
+          },
+        });
+
+        return {
+          laundryQueue: updatedLaunryQueue,
+          payment: updatedPayment,
+          cashflow: createdCashflow,
+        };
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error("[EXCEPTION] accPayment");
       this.throwError(error);
     }
   }

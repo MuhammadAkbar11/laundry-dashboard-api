@@ -6,6 +6,7 @@ import PaymentController from "./payment.controller";
 import validateResource from "../../middlewares/validate.middleware";
 import {
   createPaymentSchema,
+  postRespondPaymentSchema,
   readPaymentByInvoiceSchema,
   readPaymentSchema,
 } from "./payment.schema";
@@ -35,6 +36,13 @@ class PaymentRouter extends BaseRouter<PaymentController> {
         requiredUser,
         [validateResource(readPaymentByInvoiceSchema)],
         this.controller.getByInvoice
+      );
+    this.router
+      .route("/:paymentId/respond")
+      .post(
+        requiredUser,
+        [validateResource(postRespondPaymentSchema)],
+        this.controller.postRespond
       );
   }
 }

@@ -110,6 +110,7 @@ build/
 .node_test/
 test/
 
+.env.*
 .env
 .env.development
 .env.test
