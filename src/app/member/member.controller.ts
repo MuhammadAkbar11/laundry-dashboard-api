@@ -505,6 +505,7 @@ class MemberController extends BaseController {
         laundryQueue: {
           status: "FINISHED",
           customerId: req.member?.customerId as string,
+          queuePaymentStatus: "FINISHED",
         },
       };
 

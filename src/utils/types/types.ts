@@ -14,7 +14,7 @@ export type IncTablesNameTypes =
   | "tb_laundries"
   | "tb_laundry_queues"
   | "tb_laundry_rooms"
-  | "tb_history_service"
+  | "tb_history_services"
   | "tb_payments"
   | "tb_expenses"
   | "tb_cashflow";

@@ -33,11 +33,11 @@ class LaundryQueueController extends BaseController {
   ): SortingTypes<Prisma.LaundryQueueOrderByWithRelationAndSearchRelevanceInput> {
     let sortingOptions: SortingTypes<Prisma.LaundryQueueOrderByWithRelationAndSearchRelevanceInput> =
       {
-        [`${orderBy || "laundryQueueId"}`]: sortBy || "desc",
+        [`${orderBy || "createdAt"}`]: sortBy || "desc",
       };
 
     if (!orderBy) {
-      sortingOptions = [{ status: "asc" }, { laundryQueueId: "desc" }];
+      sortingOptions = [{ status: "asc" }, { createdAt: "desc" }];
     }
 
     if (orderBy?.includes("customerName")) {

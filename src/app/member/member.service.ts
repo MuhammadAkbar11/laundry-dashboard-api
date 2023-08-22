@@ -134,7 +134,7 @@ class MemberService extends BaseService {
             data: {
               historyServiceId: await this.generateIncField({
                 prismaTx: tx,
-                tableName: "tb_history_service",
+                tableName: "tb_history_services",
                 field: "history_service_id",
                 length: 7,
               }),
