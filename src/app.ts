@@ -28,6 +28,7 @@ import AuthMemberRouter from "./app/authMember/authMember.routes";
 import PublicRouter from "./app/public/public.routes";
 import MemberRouter from "./app/member/member.routes";
 import SettingRouter from "./app/setting/setting.routes";
+import ReportRouter from "./app/reports/report.routes";
 import logger from "./configs/logger.config";
 
 class App {
@@ -43,8 +44,6 @@ class App {
     const origins = ENV.ALLOWED_ORIGINS.includes("|")
       ? ENV.ALLOWED_ORIGINS?.split("|")
       : ENV.ALLOWED_ORIGINS;
-    // console.log("TEST", ENV.ALLOWED_ORIGINS.split("|"));
-    // console.log(ENV.ALLOWED_ORIGINS);
 
     if (ENV.MODE === "development") {
       logger.info(`[SERVER] origin ${ENV.ALLOWED_ORIGINS}`);
@@ -90,6 +89,7 @@ class App {
     this.server.use("/customer", new CustomerRouter(this.server).getRouter());
     this.server.use("/member", new MemberRouter(this.server).getRouter());
     this.server.use("/payment", new PaymentRouter(this.server).getRouter());
+    this.server.use("/report", new ReportRouter(this.server).getRouter());
     this.server.use("/profile", new ProfileRouter(this.server).getRouter());
     this.server.use("/user", new UserRouter(this.server).getRouter());
     this.server.use("/setting", new SettingRouter(this.server).getRouter());
