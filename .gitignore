@@ -118,3 +118,4 @@ private.key
 public.key
 *.pem
 commitwhiz/
+public/uploads
