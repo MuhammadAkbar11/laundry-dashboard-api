@@ -18,7 +18,9 @@ import {
   ReadMemberLaundryQueueByIDPayload,
   ReadMemberLaundryQueuePayload,
   ReadMemberLaundryRoomDetailPayload,
+  ReadMemberPaymentByInvoicePayload,
   ReadMemberTrxPayload,
+  UpdateMemberProfilePayload,
 } from "./member.schema";
 import {
   DeliveryType,
@@ -607,6 +609,93 @@ class MemberController extends BaseController {
       if (fileimgData) {
         FileHelper.unlinkFile(ENV_STATIC_FOLDER_PATH + proof, false);
       }
+      this.nextError(next, error);
+    }
+  }
+
+  public async getMemberInvoice(
+    req: Request<ReadMemberPaymentByInvoicePayload["params"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    const invoiceParam = req.params.invoice as string;
+
+    try {
+      const invoice = await this.service.getMemberInvoice(invoiceParam);
+
+      if (!invoice) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Invoice", invoiceParam)
+        );
+      }
+
+      res.status(200).json({
+        message: this.getSuccessMessage("readById", "Invoice", invoiceParam),
+        invoice: parsingResult(invoice),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async putMemberProfile(
+    req: Request<{}, {}, UpdateMemberProfilePayload["body"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    const member = req.member;
+    try {
+      const member = req.member;
+      if (!member) {
+        return res.status(404).json({
+          message: "Failed to get member profile",
+          member: req.member,
+        });
+      }
+      const memberIdParam = member.memberId as string;
+
+      const { name, address, phone, username } = req.body;
+
+      const existingMember = await this.service.getById(memberIdParam);
+
+      if (!existingMember) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Pelanggan", memberIdParam)
+        );
+      }
+
+      const result = await this.prisma.$transaction(async tx => {
+        const updatedMember = await tx.member.update({
+          where: { memberId: memberIdParam },
+          data: {
+            username: username,
+          },
+        });
+
+        const updatedCustomer = await tx.customer.update({
+          where: { customerId: existingMember?.customerId as string },
+          data: {
+            name: name,
+            address: address,
+            phone: phone,
+          },
+        });
+
+        return {
+          customer: updatedCustomer,
+          member: updatedMember,
+        };
+      });
+
+      res.status(200).json({
+        message: this.getSuccessMessage("update", "Member Profile"),
+        profile: parsingResult(result),
+      });
+    } catch (error: any) {
       this.nextError(next, error);
     }
   }

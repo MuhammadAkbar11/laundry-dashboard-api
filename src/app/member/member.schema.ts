@@ -112,6 +112,22 @@ export const readMemberLaundryQueueByIDSchema = z.object({
   }),
 });
 
+export const readMemberPaymentByInvoiceSchema = z.object({
+  params: z.object({
+    invoice: z.string().nonempty("Invoice is required"),
+  }),
+});
+
+export const updateMemberProfileSchema = z.object({
+  body: z.object({
+    // email: z.string().email(),
+    username: z.string(),
+    name: z.string(),
+    address: z.string(),
+    phone: z.string(),
+  }),
+});
+
 export type MemberOrderPayload = z.TypeOf<typeof memberOrderSchema>;
 export type PostPaymentPayload = z.TypeOf<typeof postMemberPaymentSchema>;
 export type ReadMemberLaundryQueuePayload = z.TypeOf<
@@ -123,4 +139,10 @@ export type ReadMemberLaundryRoomDetailPayload = z.TypeOf<
 export type ReadMemberLaundryQueueByIDPayload = z.TypeOf<
   typeof readMemberLaundryQueueByIDSchema
 >;
+export type ReadMemberPaymentByInvoicePayload = z.TypeOf<
+  typeof readMemberPaymentByInvoiceSchema
+>;
 export type ReadMemberTrxPayload = z.TypeOf<typeof readMemberTrxSchema>;
+export type UpdateMemberProfilePayload = z.TypeOf<
+  typeof updateMemberProfileSchema
+>;

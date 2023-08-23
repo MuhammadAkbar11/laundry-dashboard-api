@@ -8,6 +8,8 @@ import {
   readMemberLaundryQueueSchema,
   readMemberTrxSchema,
   postMemberPaymentSchema,
+  readMemberPaymentByInvoiceSchema,
+  updateMemberProfileSchema,
 } from "./member.schema";
 import {
   deserializeMember,
@@ -32,6 +34,13 @@ class MemberRouter extends BaseRouter<MemberController> {
       [validateResource(memberOrderSchema)],
       this.controller.postLaundryQueueOrder
     );
+    this.router.put(
+      "/member/profile",
+      deserializeMember,
+      requiredMember,
+      [validateResource(updateMemberProfileSchema)],
+      this.controller.putMemberProfile
+    );
     this.router.post(
       "/member/payment",
       deserializeMember,
@@ -53,6 +62,13 @@ class MemberRouter extends BaseRouter<MemberController> {
       requiredMember,
       [validateResource(readMemberTrxSchema)],
       this.controller.getMemberTransaction
+    );
+    this.router.get(
+      "/transaction-invoice/:invoice",
+      deserializeMember,
+      requiredMember,
+      [validateResource(readMemberPaymentByInvoiceSchema)],
+      this.controller.getMemberInvoice
     );
     this.router.get(
       "/laundry-queue/:laundryQueueId/laundries",

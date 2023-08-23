@@ -319,6 +319,29 @@ class MemberService extends BaseService {
       this.throwError(error);
     }
   }
+
+  public async getMemberInvoice(
+    invoice: string
+  ): Promise<Payment | void | null> {
+    try {
+      const result = await this.prisma.payment.findUnique({
+        where: { invoice: invoice },
+        include: {
+          laundryQueue: {
+            include: {
+              customer: true,
+              laundryRoom: true,
+              laundries: { include: { historyService: true } },
+            },
+          },
+        },
+      });
+      return result;
+    } catch (error) {
+      this.logger.error("[EXCEPTION] getMemberInvoice");
+      this.throwError(error);
+    }
+  }
 }
 
 export default MemberService;
