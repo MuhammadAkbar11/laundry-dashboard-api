@@ -15,11 +15,12 @@ import { SortingTypes } from "../../utils/types/types";
 import { PAYMENT_METHODS } from "../../configs/vars.config";
 import Pagination from "../../helpers/pagination.helper";
 import {
-  ReadReportTrxBetweenDatePayload,
+  ReadReportTrxPeriodDatePayload,
   ReadReportTrxDatePayload,
   ReadReportTrxFullDatePayload,
   ReadReportTrxMonthPayload,
   ReadReportTrxPayload,
+  ReadReportCashFlowload,
 } from "./report.schema";
 
 type PaymentSorting =
@@ -153,44 +154,103 @@ class ReportController extends BaseController {
     next: NextFunction
   ) {
     try {
-      const data = await this.service.getReportTrxFullDate({
+      const _limit = Number(req.query?.limit || 10);
+      const _page = Number(req.query?.page || 1);
+
+      const paginated = new Pagination<Payment>(+_page, +_limit, {
+        defaultLimit: 20,
+        itemKeyName: "reportTrx",
+      });
+
+      const result = await this.service.getReportTrxFullDate({
         year: Number(req.query?.year),
         month: Number(req.query?.month),
         day: Number(req.query?.day),
-        page: Number(req.query?.page || 1),
-        limit: Number(req.query?.limit || 10),
+        page: _page,
+        limit: _limit,
       });
+
+      const data = paginated.getPagingData(
+        result?.totalRecords as number,
+        result?.data as any[]
+      );
 
       res.status(200).json({
         message: this.getSuccessMessage("read", "Laporan Transaksi"),
-        ...parsingResult(data),
+        data: parsingResult(data),
       });
     } catch (error) {
       this.nextError(next, error);
     }
   }
 
-  public async getReportTrxBetweenDate(
+  public async getReportTrxPeriodDate(
     req: Request<
-      ReadReportTrxBetweenDatePayload["params"],
+      ReadReportTrxPeriodDatePayload["params"],
       {},
       {},
-      ReadReportTrxBetweenDatePayload["query"]
+      ReadReportTrxPeriodDatePayload["query"]
     >,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const data = await this.service.getReportTrxBetweenDate({
+      const _limit = Number(req.query?.limit || 10);
+      const _page = Number(req.query?.page || 1);
+
+      const paginated = new Pagination<Payment>(+_page, +_limit, {
+        defaultLimit: 20,
+        itemKeyName: "reportTrx",
+      });
+
+      const result = await this.service.getReportTrxPeriodDate({
         startDate: req.params.startDate,
         endDate: req.params.endDate,
         page: Number(req.query?.page || 1),
         limit: Number(req.query?.limit || 10),
       });
 
+      const data = paginated.getPagingData(
+        result?.totalRecords as number,
+        result?.data as any[]
+      );
+
       res.status(200).json({
         message: this.getSuccessMessage("read", "Laporan Transaksi"),
-        ...parsingResult(data),
+        data: parsingResult(data),
+      });
+    } catch (error) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async getReportCashFlow(
+    req: Request<{}, {}, {}, ReadReportCashFlowload["query"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const _limit = Number(req.query?.limit || 10);
+      const _page = Number(req.query?.page || 1);
+
+      const paginated = new Pagination<Payment>(+_page, +_limit, {
+        defaultLimit: 20,
+        itemKeyName: "reportCashFlow",
+      });
+
+      const result = await this.service.getReportCashFlow({
+        page: Number(req.query?.page || 1),
+        limit: Number(req.query?.limit || 10),
+      });
+
+      const data = paginated.getPagingData(
+        result?.totalRecords as number,
+        result?.data as any[]
+      );
+
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Laporan Kas"),
+        data: parsingResult(data),
       });
     } catch (error) {
       this.nextError(next, error);

@@ -49,7 +49,7 @@ export const readReportTrxFullDateSchema = z.object({
   }),
 });
 
-export const readReportTrxBetweenDateSchema = z.object({
+export const readReportTrxPeriodDateSchema = z.object({
   params: z.object({
     startDate: z.string().nonempty("startDate is required"),
     endDate: z.string().nonempty("endDate is required"),
@@ -57,6 +57,13 @@ export const readReportTrxBetweenDateSchema = z.object({
   query: z.object({
     page: z.string().optional().default("1"), // Page number should be positive integer
     limit: z.string().optional(), // Page size should be positive integer
+  }),
+});
+
+export const readReportCashflowSchema = z.object({
+  query: z.object({
+    page: z.string().optional().default("1"), // Page number should be positive integer
+    limit: z.string().optional().default("10"), // Page size should be positive integer
   }),
 });
 
@@ -68,6 +75,7 @@ export type ReadReportTrxDatePayload = z.infer<typeof readReportTrxDateSchema>;
 export type ReadReportTrxFullDatePayload = z.infer<
   typeof readReportTrxFullDateSchema
 >;
-export type ReadReportTrxBetweenDatePayload = z.infer<
-  typeof readReportTrxBetweenDateSchema
+export type ReadReportTrxPeriodDatePayload = z.infer<
+  typeof readReportTrxPeriodDateSchema
 >;
+export type ReadReportCashFlowload = z.infer<typeof readReportCashflowSchema>;

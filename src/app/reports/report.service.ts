@@ -362,15 +362,17 @@ class ReportService extends BaseService {
 
       return {
         data,
+        totalRecords,
         totalPages: Math.ceil(totalRecords / limit),
         currentPage: page,
       };
     } catch (error) {
-      this.logger.error("[EXCEPTION] getReportTrxByYear");
+      this.logger.error("[EXCEPTION] getReportTrxFullDate");
       this.throwError(error);
     }
   }
-  public async getReportTrxBetweenDate(payload: {
+
+  public async getReportTrxPeriodDate(payload: {
     startDate: string;
     endDate: string;
     page: number;
@@ -412,6 +414,7 @@ class ReportService extends BaseService {
             month: "long",
           }),
           time: new Date(kas.createdAt).toISOString(),
+          type: kas.cashflowType,
           invoice: kas.cashflowInvoice,
           description: kas.description,
           amount: kas.total,
@@ -421,10 +424,40 @@ class ReportService extends BaseService {
       return {
         data,
         totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
         currentPage: page,
       };
     } catch (error) {
-      this.logger.error("[EXCEPTION] getReportTrxBetweenDate");
+      this.logger.error("[EXCEPTION] getReportTrxPeriodDate");
+      this.throwError(error);
+    }
+  }
+
+  public async getReportCashFlow(payload: { page: number; limit: number }) {
+    try {
+      const { page, limit } = payload;
+
+      const skip = (page - 1) * limit;
+      const take = limit;
+
+      const kasData = await this.prisma.cashFlow.findMany({
+        where: {},
+        skip,
+        take,
+      });
+
+      const totalRecords = await this.prisma.cashFlow.count({
+        where: {},
+      });
+
+      return {
+        data: kasData,
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
+        currentPage: page,
+      };
+    } catch (error) {
+      this.logger.error("[EXCEPTION] getReportTrxPeriodDate");
       this.throwError(error);
     }
   }
