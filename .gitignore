@@ -119,3 +119,8 @@ public.key
 *.pem
 commitwhiz/
 public/uploads
+
+.agent
+
+.yarn/
+.yarnrc.yml

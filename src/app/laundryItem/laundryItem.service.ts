@@ -10,11 +10,10 @@ import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import _ from "lodash";
 
-interface ILaundryItemInput
-  extends Omit<
-    LaundryItem,
-    "laundryId" | "createdAt" | "updatedAt" | "price" | "totalPrice"
-  > {}
+interface ILaundryItemInput extends Omit<
+  LaundryItem,
+  "laundryId" | "createdAt" | "updatedAt" | "price" | "totalPrice"
+> {}
 
 @BindAllMethods
 class LaundryItemService extends BaseService {
@@ -28,7 +27,7 @@ class LaundryItemService extends BaseService {
   }
 
   public async getAll(
-    options?: Prisma.LaundryItemFindManyArgs
+    options?: Prisma.LaundryItemFindManyArgs,
   ): Promise<LaundryItem[] | void> {
     try {
       const result = await this.prisma.laundryItem.findMany(options);
@@ -66,13 +65,13 @@ class LaundryItemService extends BaseService {
 
   public async create(
     payload: ILaundryItemInput,
-    laundryService: Service
+    laundryService: Service,
   ): Promise<
     | {
         laundryItem: LaundryItem;
         laundryRoom: LaundryRoom;
         historyService: HistoryService;
-        laundryQueue: LaundryQueue;
+        // laundryQueue: LaundryQueue;
       }
     | void
     | undefined
@@ -111,14 +110,14 @@ class LaundryItemService extends BaseService {
           data: newLaundryItem,
         });
 
-        const updatedlaundryQueue = await tx.laundryQueue.update({
-          where: {
-            laundryQueueId: createdLaundryItem.laundryQueueId,
-          },
-          data: {
-            status: "WASHED",
-          },
-        });
+        // const updatedlaundryQueue = await tx.laundryQueue.update({
+        //   where: {
+        //     laundryQueueId: createdLaundryItem.laundryQueueId,
+        //   },
+        //   data: {
+        //     status: "WASHED",
+        //   },
+        // });
 
         const laundryRoom = await tx.laundryRoom.findUnique({
           where: { laundryQueueId: createdLaundryItem.laundryQueueId },
@@ -137,7 +136,7 @@ class LaundryItemService extends BaseService {
         return {
           laundryItem: createdLaundryItem,
           laundryRoom: updatedlaundryRoom,
-          laundryQueue: updatedlaundryQueue,
+          // laundryQueue: updatedlaundryQueue,
           historyService: createdHistoryService,
         };
       });
@@ -152,7 +151,7 @@ class LaundryItemService extends BaseService {
   public async update(
     payload: Prisma.LaundryItemUncheckedUpdateInput,
     laundryItem: LaundryItem,
-    laundryService: Service
+    laundryService: Service,
   ): Promise<
     | {
         laundryItem: LaundryItem;
