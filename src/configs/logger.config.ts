@@ -17,8 +17,7 @@ const streams = [
 
 const logger = pino(
   {
-    prettifier: true,
-    level: "info",
+    level: process.env.NODE_ENV === "testing" ? "silent" : "info",
     formatters: {
       level: label => {
         return { level: label };

@@ -7,6 +7,14 @@ yarn-error.log*
 lerna-debug.log*
 yarn.lock
 
+# pnpm directories
+node_modules
+.pnpm-debug.log*
+
+# Only include this if you use pnpm's local store caching feature
+.pnpm-store
+
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
