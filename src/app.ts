@@ -29,6 +29,7 @@ import PublicRouter from "./app/public/public.routes";
 import MemberRouter from "./app/member/member.routes";
 import SettingRouter from "./app/setting/setting.routes";
 import ReportRouter from "./app/reports/report.routes";
+import ExpensesRouter from "./app/expenses/expenses.routes";
 import logger from "./configs/logger.config";
 
 class App {
@@ -113,6 +114,7 @@ class App {
       "/level/customer",
       new CustomerLevelRouter(this.server).getRouter()
     );
+    this.server.use("/expenses", new ExpensesRouter(this.server).getRouter());
     this.server.use("/email", new EmailRouter(this.server).getRouter());
   }
 
