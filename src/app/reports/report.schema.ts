@@ -62,8 +62,8 @@ export const readReportTrxPeriodDateSchema = z.object({
 
 export const readReportCashflowSchema = z.object({
   query: z.object({
-    page: z.string().optional().default("1"), // Page number should be positive integer
-    limit: z.string().optional().default("10"), // Page size should be positive integer
+    _page: z.string().optional().default("1"), // Page number should be positive integer
+    _limit: z.string().optional().default("10"), // Page size should be positive integer
   }),
 });
 

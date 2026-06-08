@@ -112,11 +112,11 @@ class ReportController extends BaseController {
   public async getReportTrxMonth(
     req: Request<ReadReportTrxMonthPayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const data = await this.service.getReportTrxByMonth(
-        Number(req.params?.year)
+        Number(req.params?.year),
       );
 
       res.status(200).json({
@@ -131,12 +131,12 @@ class ReportController extends BaseController {
   public async getReportTrxDate(
     req: Request<ReadReportTrxDatePayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const data = await this.service.getReportTrxDate(
         Number(req.params?.year),
-        Number(req.params?.month)
+        Number(req.params?.month),
       );
 
       res.status(200).json({
@@ -151,7 +151,7 @@ class ReportController extends BaseController {
   public async getReportTrxFullDate(
     req: Request<{}, {}, {}, ReadReportTrxFullDatePayload["query"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const _limit = Number(req.query?.limit || 10);
@@ -172,7 +172,7 @@ class ReportController extends BaseController {
 
       const data = paginated.getPagingData(
         result?.totalRecords as number,
-        result?.data as any[]
+        result?.data as any[],
       );
 
       res.status(200).json({
@@ -192,7 +192,7 @@ class ReportController extends BaseController {
       ReadReportTrxPeriodDatePayload["query"]
     >,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const _limit = Number(req.query?.limit || 10);
@@ -212,7 +212,7 @@ class ReportController extends BaseController {
 
       const data = paginated.getPagingData(
         result?.totalRecords as number,
-        result?.data as any[]
+        result?.data as any[],
       );
 
       res.status(200).json({
@@ -227,25 +227,24 @@ class ReportController extends BaseController {
   public async getReportCashFlow(
     req: Request<{}, {}, {}, ReadReportCashFlowload["query"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
-      const _limit = Number(req.query?.limit || 10);
-      const _page = Number(req.query?.page || 1);
+      const _limit = Number(req.query?._limit || 10);
+      const _page = Number(req.query?._page || 1);
 
-      const paginated = new Pagination<Payment>(+_page, +_limit, {
+      const paginated = new Pagination<Payment>(_page, _limit, {
         defaultLimit: 20,
         itemKeyName: "reportCashFlow",
       });
-
       const result = await this.service.getReportCashFlow({
-        page: Number(req.query?.page || 1),
-        limit: Number(req.query?.limit || 10),
+        page: _page,
+        limit: _limit,
       });
 
       const data = paginated.getPagingData(
         result?.totalRecords as number,
-        result?.data as any[]
+        result?.data as any[],
       );
 
       res.status(200).json({

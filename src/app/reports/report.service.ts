@@ -34,7 +34,7 @@ class ReportService extends BaseService {
             gte: new Date(
               today.getFullYear(),
               today.getMonth(),
-              today.getDate()
+              today.getDate(),
             ).toDateString(),
           },
         },
@@ -51,7 +51,7 @@ class ReportService extends BaseService {
             gte: new Date(
               today.getFullYear(),
               today.getMonth(),
-              0
+              0,
             ).toDateString(),
           },
         },
@@ -69,12 +69,12 @@ class ReportService extends BaseService {
               gte: new Date(
                 currentDate.getFullYear(),
                 currentDate.getMonth(),
-                currentDate.getDate()
+                currentDate.getDate(),
               ).toDateString(),
               lt: new Date(
                 currentDate.getFullYear(),
                 currentDate.getMonth(),
-                currentDate.getDate() + 1
+                currentDate.getDate() + 1,
               ).toDateString(),
             },
           },
@@ -89,12 +89,12 @@ class ReportService extends BaseService {
               gte: new Date(
                 currentDate.getFullYear(),
                 currentDate.getMonth(),
-                currentDate.getDate()
+                currentDate.getDate(),
               ).toDateString(),
               lt: new Date(
                 currentDate.getFullYear(),
                 currentDate.getMonth(),
-                currentDate.getDate() + 1
+                currentDate.getDate() + 1,
               ).toDateString(),
             },
           },
@@ -150,10 +150,10 @@ class ReportService extends BaseService {
         if (yearGroups.hasOwnProperty(year)) {
           const cashFlowGroup = yearGroups[year];
           const incomeCount = cashFlowGroup.filter(
-            kas => kas.cashflowType === "IN"
+            kas => kas.cashflowType === "IN",
           ).length;
           const expenseCount = cashFlowGroup.filter(
-            kas => kas.cashflowType === "OUT"
+            kas => kas.cashflowType === "OUT",
           ).length;
           const incomeSum = cashFlowGroup
             .filter(kas => kas.cashflowType === "IN")
@@ -206,10 +206,10 @@ class ReportService extends BaseService {
         if (monthGroups.hasOwnProperty(month)) {
           const cashFlowGroup = monthGroups[month];
           const incomeCount = cashFlowGroup.filter(
-            kas => kas.cashflowType === "IN"
+            kas => kas.cashflowType === "IN",
           ).length;
           const expenseCount = cashFlowGroup.filter(
-            kas => kas.cashflowType === "OUT"
+            kas => kas.cashflowType === "OUT",
           ).length;
           const incomeSum = cashFlowGroup
             .filter(kas => kas.cashflowType === "IN")
@@ -267,10 +267,10 @@ class ReportService extends BaseService {
         if (dayGroups.hasOwnProperty(day)) {
           const cashFlowGroup = dayGroups[day];
           const incomeCount = cashFlowGroup.filter(
-            cf => cf.cashflowType === "IN"
+            cf => cf.cashflowType === "IN",
           ).length;
           const expenseCount = cashFlowGroup.filter(
-            cf => cf.cashflowType === "OUT"
+            cf => cf.cashflowType === "OUT",
           ).length;
           const incomeSum = cashFlowGroup
             .filter(cf => cf.cashflowType === "IN")
@@ -433,15 +433,19 @@ class ReportService extends BaseService {
     }
   }
 
-  public async getReportCashFlow(payload: { page: number; limit: number }) {
+  public async getReportCashFlow(payload: {
+    page: number;
+    limit: number;
+    where?: Prisma.CashFlowWhereInput;
+  }) {
     try {
-      const { page, limit } = payload;
+      const { page, limit, where } = payload;
 
       const skip = (page - 1) * limit;
       const take = limit;
 
       const kasData = await this.prisma.cashFlow.findMany({
-        where: {},
+        where,
         skip,
         take,
       });

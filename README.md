@@ -29,9 +29,11 @@ REST API for the CusCuciin laundry management system, built with Express.js + Ty
    nvm use
    ```
 4. Install dependencies:
+
    ```sh
    pnpm install
    ```
+
 5. Set up the database autoincrement table:
    ```sh
    pnpm db:setup
