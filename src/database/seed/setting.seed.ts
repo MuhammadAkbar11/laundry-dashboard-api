@@ -53,6 +53,17 @@ const settingsData: Omit<prisma.Setting, "settingId">[] = [
     createdAt: new Date("2023-07-18T03:22:53.000Z"),
     updatedAt: new Date("2023-07-18T03:22:53.000Z"),
   },
+  {
+    name: "bank_info",
+    description: "Informasi Bank untuk Pembayaran",
+    value: JSON.stringify([
+      { bank_name: "MANDIRI", no_rek: "1234567890" },
+      { bank_name: "BRI", no_rek: "0987654321" },
+      { bank_name: "BCA", no_rek: "2468135790" },
+    ]),
+    createdAt: new Date("2023-07-18T03:22:53.000Z"),
+    updatedAt: new Date("2023-07-18T03:22:53.000Z"),
+  },
 ];
 
 export async function seedInitSettings(
