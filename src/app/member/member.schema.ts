@@ -120,11 +120,48 @@ export const readMemberPaymentByInvoiceSchema = z.object({
 
 export const updateMemberProfileSchema = z.object({
   body: z.object({
-    // email: z.string().email(),
     username: z.string(),
     name: z.string(),
     address: z.string(),
     phone: z.string(),
+  }),
+});
+
+// Admin schemas
+export const readAdminMembersSchema = z.object({
+  query: z.object({
+    _search: z.string().optional(),
+    _page: z.string().optional(),
+    _limit: z.string().optional(),
+    _orderBy: z.string().optional(),
+    _sortBy: z.string().optional(),
+  }),
+});
+
+export const updateAdminMemberSchema = z.object({
+  params: z.object({
+    memberId: z.string().max(21),
+  }),
+  body: z.object({
+    username: z.string().optional(),
+    email: z.string().email().optional(),
+    status: z.enum(["ACTIVE", "INACTIVE", "PENDING", "SUSPENDED"]).optional(),
+    avatar: z.string().optional(),
+    password: z.string().min(6, "Password minimal 6 karakter").optional(),
+    customer: z
+      .object({
+        name: z.string().optional(),
+        address: z.string().optional(),
+        phone: z.string().optional(),
+        customerLevelId: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+
+export const readAdminMemberSchema = z.object({
+  params: z.object({
+    memberId: z.string().max(21),
   }),
 });
 
@@ -146,3 +183,6 @@ export type ReadMemberTrxPayload = z.TypeOf<typeof readMemberTrxSchema>;
 export type UpdateMemberProfilePayload = z.TypeOf<
   typeof updateMemberProfileSchema
 >;
+export type ReadAdminMembersPayload = z.TypeOf<typeof readAdminMembersSchema>;
+export type UpdateAdminMemberPayload = z.TypeOf<typeof updateAdminMemberSchema>;
+export type ReadAdminMemberPayload = z.TypeOf<typeof readAdminMemberSchema>;

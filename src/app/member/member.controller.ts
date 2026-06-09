@@ -8,16 +8,23 @@ import {
   LQ_STATUS,
   PAYMENT_METHODS,
 } from "../../configs/vars.config";
+import { Member } from "@prisma/client";
 import { BaseController } from "../../core";
 import { isNumericQuery, parsingResult, searchArray } from "../../utils/utils";
 import _ from "lodash";
+import bcrypt from "bcrypt";
 import MemberService from "./member.service";
+import FileHelper from "../../helpers/file.helper";
+import Pagination from "../../helpers/pagination.helper";
 import {
   MemberOrderPayload,
   PostPaymentPayload,
   ReadMemberLaundryQueueByIDPayload,
   ReadMemberLaundryQueuePayload,
   ReadMemberLaundryRoomDetailPayload,
+  ReadAdminMembersPayload,
+  UpdateAdminMemberPayload,
+  ReadAdminMemberPayload,
   ReadMemberPaymentByInvoicePayload,
   ReadMemberTrxPayload,
   UpdateMemberProfilePayload,
@@ -32,10 +39,8 @@ import {
   PaymentMethod,
   Prisma,
 } from "@prisma/client";
-import Pagination from "../../helpers/pagination.helper";
 import { SortingTypes } from "../../utils/types/types";
 import { ReadLaundryRoomPayload } from "../laundryRoom/laundryRoom.schema";
-import FileHelper from "../../helpers/file.helper";
 
 @BindAllMethods
 class MemberController extends BaseController {
@@ -44,10 +49,292 @@ class MemberController extends BaseController {
     super();
   }
 
+  // ── Admin methods ──────────────────────────────────────────────
+
+  public async adminGetAllMembers(
+    req: Request<{}, {}, {}, ReadAdminMembersPayload["query"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { _search, _page = 1, _limit = 10, _orderBy, _sortBy } = req.query;
+
+      let where: Prisma.MemberWhereInput = {};
+
+      const paginated = new Pagination<Member>(+_page, +_limit, {
+        defaultLimit: 20,
+        itemKeyName: "members",
+      });
+
+      const { limit, skip } = paginated.getPagination();
+      const orderBy: Prisma.MemberOrderByWithRelationAndSearchRelevanceInput = {
+        [`${_orderBy || "createdAt"}`]: (_sortBy as Prisma.SortOrder) || "desc",
+      };
+
+      if (_search) {
+        where = {
+          OR: [
+            { memberId: { contains: _search } },
+            { email: { contains: _search } },
+            { username: { contains: _search } },
+            { customer: { name: { contains: _search } } },
+          ],
+        };
+      }
+
+      const members = await this.service.getAll({
+        where,
+        skip,
+        orderBy,
+        take: limit,
+        include: {
+          customer: {
+            include: {
+              customerLevel: true,
+              _count: { select: { laundryQueues: true } },
+            },
+          },
+        },
+      });
+
+      const total = await this.service.count({ where });
+
+      const data = paginated.getPagingData(
+        Number(total),
+        parsingResult(members),
+      );
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Member"),
+        data: { search: _search, ...data },
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async adminGetMemberById(
+    req: Request<ReadAdminMemberPayload["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    const memberId = req.params.memberId;
+    try {
+      const member = await this.service.getById(memberId, {
+        include: {
+          customer: {
+            include: {
+              customerLevel: true,
+              _count: { select: { laundryQueues: true } },
+            },
+          },
+          sessions: { take: 5, orderBy: { createdAt: "desc" } },
+        },
+      });
+      if (!member) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Member", memberId),
+        );
+      }
+
+      // Aggregate stats
+      const payments = await this.prisma.payment.findMany({
+        where: {
+          laundryQueue: {
+            customerId: member.customerId ?? undefined,
+            queuePaymentStatus: "FINISHED",
+          },
+        },
+      });
+      const totalOrders = await this.prisma.laundryQueue.count({
+        where: { customerId: member.customerId ?? undefined },
+      });
+      const totalSpending = payments.reduce(
+        (sum, p) => sum + Number(p.totalPrice),
+        0,
+      );
+
+      res.status(200).json({
+        message: this.getSuccessMessage("readById", "Member", memberId),
+        member: parsingResult(member),
+        stats: {
+          totalOrders,
+          totalSpending,
+          totalTransactions: payments.length,
+        },
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async adminUpdateMember(
+    req: Request<
+      UpdateAdminMemberPayload["params"],
+      {},
+      UpdateAdminMemberPayload["body"]
+    >,
+    res: Response,
+    next: NextFunction,
+  ) {
+    const memberId = req.params.memberId;
+    try {
+      const existing = await this.service.getById(memberId);
+      if (!existing) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Member", memberId),
+        );
+      }
+
+      const { username, email, status, password, customer } = req.body;
+
+      const result = await this.prisma.$transaction(async tx => {
+        const memberData: any = {};
+        if (username !== undefined) memberData.username = username;
+        if (email !== undefined) memberData.email = email;
+        if (status !== undefined) memberData.status = status;
+        if (password !== undefined) {
+          memberData.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedMember =
+          Object.keys(memberData).length > 0
+            ? await tx.member.update({ where: { memberId }, data: memberData })
+            : existing;
+
+        let updatedCustomer = existing.customerId;
+        if (customer && existing.customerId) {
+          const custData: any = {};
+          if (customer.name !== undefined) custData.name = customer.name;
+          if (customer.address !== undefined)
+            custData.address = customer.address;
+          if (customer.phone !== undefined) custData.phone = customer.phone;
+          if (customer.customerLevelId !== undefined)
+            custData.customerLevelId = customer.customerLevelId;
+          if (Object.keys(custData).length > 0) {
+            updatedCustomer = (await tx.customer.update({
+              where: { customerId: existing.customerId },
+              data: custData,
+            })) as any;
+          }
+        }
+
+        return { member: updatedMember, customer: updatedCustomer };
+      });
+
+      res.status(200).json({
+        message: this.getSuccessMessage("update", "Member"),
+        member: parsingResult(result.member),
+        customer: parsingResult(result.customer),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async adminResetMemberPassword(
+    req: Request<{ memberId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    const memberId = req.params.memberId;
+    try {
+      const existing = await this.service.getById(memberId);
+      if (!existing) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Member", memberId),
+        );
+      }
+
+      const tempPassword = _.sample([
+        "Temp@123",
+        "Member123",
+        "Reset@123",
+        "12345678",
+      ]) as string;
+      const hashed = await bcrypt.hash(tempPassword, 10);
+
+      await this.service.update(memberId, { password: hashed });
+
+      res.status(200).json({
+        message: "Password berhasil direset",
+        temporaryPassword: tempPassword,
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async adminPutAvatar(
+    req: Request<{ memberId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    const memberId = req.params.memberId;
+    try {
+      const existing = await this.service.getById(memberId);
+      if (!existing) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          this.getErrorMessage("readByIdNotFound", "Member", memberId),
+        );
+      }
+
+      const fileimgData = req.fileimg?.data;
+
+      if (fileimgData?.path) {
+        // Upload new avatar
+        const avatarPath = fileimgData.path.replace(ENV_STATIC_FOLDER_NAME, "");
+        if (existing.avatar && existing.avatar !== "/img/avatars/avatar.jpg") {
+          FileHelper.unlinkFile(
+            ENV_STATIC_FOLDER_PATH + existing.avatar,
+            false,
+          );
+        }
+        const updated = await this.service.update(memberId, {
+          avatar: avatarPath,
+        });
+        res
+          .status(200)
+          .json({
+            message: "Avatar berhasil diupload",
+            member: parsingResult(updated),
+          });
+      } else {
+        // Reset avatar (no file uploaded)
+        if (existing.avatar && existing.avatar !== "/img/avatars/avatar.jpg") {
+          FileHelper.unlinkFile(
+            ENV_STATIC_FOLDER_PATH + existing.avatar,
+            false,
+          );
+        }
+        const updated = await this.service.update(memberId, {
+          avatar: "/img/avatars/avatar.jpg",
+        });
+        res
+          .status(200)
+          .json({
+            message: "Avatar berhasil direset",
+            member: parsingResult(updated),
+          });
+      }
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  // ── Existing member-facing methods ─────────────────────────────
+
   public async postLaundryQueueOrder(
     req: Request<{}, {}, MemberOrderPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const customer = await this.prisma.customer.findUnique({
@@ -81,7 +368,7 @@ class MemberController extends BaseController {
 
   private sortingLaundryQueue(
     orderBy: string,
-    sortBy: Prisma.SortOrder
+    sortBy: Prisma.SortOrder,
   ): SortingTypes<Prisma.LaundryQueueOrderByWithRelationAndSearchRelevanceInput> {
     let sortingOptions: SortingTypes<Prisma.LaundryQueueOrderByWithRelationAndSearchRelevanceInput> =
       {
@@ -104,12 +391,12 @@ class MemberController extends BaseController {
   }
 
   private searchingLaundryQueue(
-    query: string
+    query: string,
   ): Prisma.Enumerable<Prisma.LaundryQueueWhereInput> {
     const statusByQuery = searchArray<string>(Object.keys(LQ_STATUS), query);
     const deliveryTypeByQuery = searchArray<string>(
       Object.keys(DELIVERY_TYPE),
-      query
+      query,
     );
     const ORsearching: Prisma.Enumerable<Prisma.LaundryQueueWhereInput> = [
       {
@@ -151,7 +438,7 @@ class MemberController extends BaseController {
   public async getLaundryQueue(
     req: Request<{}, {}, {}, ReadMemberLaundryQueuePayload["query"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { _search, _page = 1, _limit = 10, _orderBy, _sortBy } = req.query;
@@ -165,7 +452,7 @@ class MemberController extends BaseController {
 
       const sorting = this.sortingLaundryQueue(
         _orderBy as string,
-        _sortBy as Prisma.SortOrder
+        _sortBy as Prisma.SortOrder,
       );
 
       const { limit, skip } = paginated.getPagination();
@@ -175,19 +462,6 @@ class MemberController extends BaseController {
           OR: this.searchingLaundryQueue(_search),
         };
       }
-
-      // const laundryQueues = (await this.prisma.laundryQueue.findMany({
-      //   where: { ...whereQuery, customerId: req.member?.customerId as string },
-      //   skip,
-      //   orderBy: sorting,
-      //   take: limit,
-      //   include: {
-      //     laundryRoom: true,
-      //     _count: {
-      //       select: { laundries: true },
-      //     },
-      //   },
-      // })) as LaundryQueue[];
 
       const laundryQueues = (await this.service.getLaundryQueueOrders({
         where: { ...whereQuery, customerId: req.member?.customerId as string },
@@ -213,7 +487,7 @@ class MemberController extends BaseController {
 
   private sortingLaundryRoom(
     orderBy: string,
-    sortBy: Prisma.SortOrder
+    sortBy: Prisma.SortOrder,
   ): SortingTypes<Prisma.LaundryRoomOrderByWithRelationAndSearchRelevanceInput> {
     let sortingOptions: SortingTypes<Prisma.LaundryRoomOrderByWithRelationAndSearchRelevanceInput> =
       {
@@ -238,11 +512,11 @@ class MemberController extends BaseController {
   }
 
   private searchingLaundryRoom(
-    query: string
+    query: string,
   ): Prisma.Enumerable<Prisma.LaundryRoomWhereInput> {
     const statusByQuery = searchArray<string>(
       Object.keys(LAUNDRY_ROOM_STATUS),
-      query
+      query,
     );
 
     const ORsearching: Prisma.Enumerable<Prisma.LaundryRoomWhereInput> = [
@@ -276,7 +550,7 @@ class MemberController extends BaseController {
   public async getLaundryRoom(
     req: Request<{}, {}, {}, ReadLaundryRoomPayload["query"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { _search, _page = 1, _limit = 10, _orderBy, _sortBy } = req.query;
@@ -290,7 +564,7 @@ class MemberController extends BaseController {
 
       const sorting = this.sortingLaundryRoom(
         _orderBy as string,
-        _sortBy as Prisma.SortOrder
+        _sortBy as Prisma.SortOrder,
       );
 
       const { limit, skip } = paginated.getPagination();
@@ -342,7 +616,7 @@ class MemberController extends BaseController {
   public async getLaundryRoomByID(
     req: Request<ReadMemberLaundryRoomDetailPayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { laundryQueueId } = req.params;
@@ -353,7 +627,7 @@ class MemberController extends BaseController {
         throw this.error(
           "NOT_FOUND",
           404,
-          this.getErrorMessage("readByIdNotFound", "Laundry", laundryQueueId)
+          this.getErrorMessage("readByIdNotFound", "Laundry", laundryQueueId),
         );
       }
 
@@ -369,14 +643,13 @@ class MemberController extends BaseController {
   public async getLaundryQueueByID(
     req: Request<ReadMemberLaundryQueueByIDPayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const laundryQueueIdParam = req.params.laundryQueueId as string;
 
     try {
-      const laundryQueue = await this.service.getLaundryQueueById(
-        laundryQueueIdParam
-      );
+      const laundryQueue =
+        await this.service.getLaundryQueueById(laundryQueueIdParam);
 
       if (!laundryQueue) {
         throw this.error(
@@ -385,8 +658,8 @@ class MemberController extends BaseController {
           this.getErrorMessage(
             "readByIdNotFound",
             "Antrian",
-            laundryQueueIdParam
-          )
+            laundryQueueIdParam,
+          ),
         );
       }
 
@@ -394,7 +667,7 @@ class MemberController extends BaseController {
         message: this.getSuccessMessage(
           "readById",
           "Antrian",
-          laundryQueueIdParam
+          laundryQueueIdParam,
         ),
         laundryQueue: parsingResult(laundryQueue),
       });
@@ -406,7 +679,7 @@ class MemberController extends BaseController {
   public async getLaundryItems(
     req: Request<ReadMemberLaundryQueueByIDPayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const laundryQueueIdParam = req.params.laundryQueueId as string;
 
@@ -422,20 +695,19 @@ class MemberController extends BaseController {
           this.getErrorMessage(
             "readByIdNotFound",
             "Antrian",
-            laundryQueueIdParam
-          )
+            laundryQueueIdParam,
+          ),
         );
       }
 
-      const laundries = await this.service.getLaundryItemByLaundryQueueID(
-        laundryQueueIdParam
-      );
+      const laundries =
+        await this.service.getLaundryItemByLaundryQueueID(laundryQueueIdParam);
 
       res.status(200).json({
         message: this.getSuccessMessage(
           "readById",
           "Cucian dari Antrian",
-          laundryQueueIdParam
+          laundryQueueIdParam,
         ),
         laundries: parsingResult(laundries),
       });
@@ -446,7 +718,7 @@ class MemberController extends BaseController {
 
   private sortingTrx(
     orderBy: string,
-    sortBy: Prisma.SortOrder
+    sortBy: Prisma.SortOrder,
   ): SortingTypes<Prisma.PaymentOrderByWithRelationAndSearchRelevanceInput> {
     let sortingOptions: SortingTypes<Prisma.PaymentOrderByWithRelationAndSearchRelevanceInput> =
       {
@@ -461,11 +733,11 @@ class MemberController extends BaseController {
   }
 
   private searchingTrx(
-    query: string
+    query: string,
   ): Prisma.Enumerable<Prisma.PaymentWhereInput> {
     const paymentQuery = searchArray<string>(
       Object.keys(PAYMENT_METHODS),
-      query
+      query,
     );
 
     const ORsearching: Prisma.Enumerable<Prisma.PaymentWhereInput> = [
@@ -498,7 +770,7 @@ class MemberController extends BaseController {
   public async getMemberTransaction(
     req: Request<{}, {}, {}, ReadMemberTrxPayload["query"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { _search, _page = 1, _limit = 10, _orderBy, _sortBy } = req.query;
@@ -520,7 +792,7 @@ class MemberController extends BaseController {
 
       const sorting = this.sortingTrx(
         _orderBy as string,
-        _sortBy as Prisma.SortOrder
+        _sortBy as Prisma.SortOrder,
       );
 
       if (_search) {
@@ -546,7 +818,7 @@ class MemberController extends BaseController {
 
       const data = paginated.getPagingData(
         totalPayments,
-        payments as Payment[]
+        payments as Payment[],
       );
 
       res.status(200).json({
@@ -561,7 +833,7 @@ class MemberController extends BaseController {
   public async postPayment(
     req: Request<{}, {}, PostPaymentPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const laundryQueueIdParam = req.body.laundryQueueId as string;
 
@@ -569,9 +841,8 @@ class MemberController extends BaseController {
     let proof = null;
 
     try {
-      const laundryQueue = await this.service.getLaundryQueueById(
-        laundryQueueIdParam
-      );
+      const laundryQueue =
+        await this.service.getLaundryQueueById(laundryQueueIdParam);
 
       if (!laundryQueue) {
         throw this.error(
@@ -580,16 +851,14 @@ class MemberController extends BaseController {
           this.getErrorMessage(
             "readByIdNotFound",
             "Antrian",
-            laundryQueueIdParam
-          )
+            laundryQueueIdParam,
+          ),
         );
       }
 
       if (fileimgData) {
         proof = fileimgData.path?.replace(ENV_STATIC_FOLDER_NAME, "");
       }
-
-      console.log(fileimgData);
 
       const data = await this.service.createPayment({
         laundryQueueId: laundryQueue?.laundryQueueId,
@@ -601,7 +870,7 @@ class MemberController extends BaseController {
         message: this.getSuccessMessage(
           "create",
           "Pembayaran",
-          laundryQueueIdParam
+          laundryQueueIdParam,
         ),
         data: parsingResult(data),
       });
@@ -616,7 +885,7 @@ class MemberController extends BaseController {
   public async getMemberInvoice(
     req: Request<ReadMemberPaymentByInvoicePayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const invoiceParam = req.params.invoice as string;
 
@@ -627,7 +896,7 @@ class MemberController extends BaseController {
         throw this.error(
           "NOT_FOUND",
           404,
-          this.getErrorMessage("readByIdNotFound", "Invoice", invoiceParam)
+          this.getErrorMessage("readByIdNotFound", "Invoice", invoiceParam),
         );
       }
 
@@ -643,11 +912,10 @@ class MemberController extends BaseController {
   public async putMemberProfile(
     req: Request<{}, {}, UpdateMemberProfilePayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const member = req.member;
     try {
-      const member = req.member;
       if (!member) {
         return res.status(404).json({
           message: "Failed to get member profile",
@@ -664,31 +932,22 @@ class MemberController extends BaseController {
         throw this.error(
           "NOT_FOUND",
           404,
-          this.getErrorMessage("readByIdNotFound", "Pelanggan", memberIdParam)
+          this.getErrorMessage("readByIdNotFound", "Pelanggan", memberIdParam),
         );
       }
 
       const result = await this.prisma.$transaction(async tx => {
         const updatedMember = await tx.member.update({
           where: { memberId: memberIdParam },
-          data: {
-            username: username,
-          },
+          data: { username },
         });
 
         const updatedCustomer = await tx.customer.update({
           where: { customerId: existingMember?.customerId as string },
-          data: {
-            name: name,
-            address: address,
-            phone: phone,
-          },
+          data: { name, address, phone },
         });
 
-        return {
-          customer: updatedCustomer,
-          member: updatedMember,
-        };
+        return { customer: updatedCustomer, member: updatedMember };
       });
 
       res.status(200).json({
