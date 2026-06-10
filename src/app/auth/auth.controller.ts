@@ -107,6 +107,11 @@ class AuthController extends BaseController {
           { user, sessionId: sessionId }
         );
 
+        // Reset failed-login counter for this email + IP on success.
+        if (req.resetAuthRateLimit) {
+          void req.resetAuthRateLimit();
+        }
+
         return res.status(200).json({
           message: `Berhasi login! Selamat datang ${user.name}`,
           user: { ...user, session: sessionId },

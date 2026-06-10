@@ -2,6 +2,10 @@ import express from "express";
 import { BaseRouter } from "../../core";
 import uploadSingleImage from "../../middlewares/upload.middleware";
 import validateResource from "../../middlewares/validate.middleware";
+import {
+  attachAuthRateLimitContext,
+  authRateLimit,
+} from "../../middlewares/rateLimit.middleware";
 import AuthController from "./auth.controller";
 import { signInUserSchema, signUpUserSchema } from "./auth.schema";
 import { BindAllMethods } from "../../utils/decorators.utils";
@@ -22,6 +26,8 @@ class AuthRouter extends BaseRouter<AuthController> {
     );
     this.router.post(
       "/user/signin",
+      authRateLimit,
+      attachAuthRateLimitContext,
       [validateResource(signInUserSchema)],
       this.controller.postSignInUser
     );

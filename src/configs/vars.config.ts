@@ -56,7 +56,7 @@ const publicFolders = {
 export const ENV_STATIC_FOLDER_NAME = publicFolders[mode];
 export const ENV_STATIC_FOLDER_PATH = path.join(
   ROOT_FOLDER,
-  publicFolders[mode] || publicFolders["production"]
+  publicFolders[mode] || publicFolders["production"],
 );
 
 let uploadPath = ENV_STATIC_FOLDER_NAME + "/uploads";
@@ -110,6 +110,13 @@ export const REFRESH_TOKEN_TTL = "7d";
 export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 5 minutes
 export const ACCESS_TOKEN_MAX_AGE = 300000; // 5 minutes
 
+// Authentication rate limiting (issue 007)
+export const AUTH_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+export const AUTH_RATE_LIMIT_MAX = 5; // 5 failed attempts per window
+export const AUTH_RATE_LIMIT_MESSAGE =
+  "Terlalu banyak percobaan login. Silahkan coba lagi nanti.";
+export const AUTH_RATE_LIMIT_LOG_NAME = "AUTH_RATE_LIMIT";
+
 export const HTTP_STATUS_CODE = {
   OK: 200,
   EDIT: 201,
@@ -119,19 +126,22 @@ export const HTTP_STATUS_CODE = {
 };
 
 function createFormattedObject(
-  enumObject: Record<string, string>
+  enumObject: Record<string, string>,
 ): Record<string, string> {
-  return Object.values(enumObject).reduce((acc, val) => {
-    acc[val] = val.toLowerCase().replace(/^\w/, c => c.toUpperCase());
-    return acc;
-  }, {} as Record<string, string>);
+  return Object.values(enumObject).reduce(
+    (acc, val) => {
+      acc[val] = val.toLowerCase().replace(/^\w/, c => c.toUpperCase());
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 }
 
 export const ROLES: Record<string, string> = createFormattedObject(Role);
 export const LQ_STATUS: Record<string, string> =
   createFormattedObject(LaundryQueueStatus);
 export const LQ_PAY_STATUS: Record<string, string> = createFormattedObject(
-  LaundryQueuePaymentStatus
+  LaundryQueuePaymentStatus,
 );
 export const LAUNDRY_ROOM_STATUS: Record<string, string> =
   createFormattedObject(LaundryRoomStatus);
