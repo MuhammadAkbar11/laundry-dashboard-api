@@ -51,6 +51,7 @@
     "express-rate-limit": "^7.5.1",
     "express-useragent": "^1.0.15",
     "googleapis": "^114.0.0",
+    "helmet": "^7.2.0",
     "inquirer": "^8.2.0",
     "jsonwebtoken": "^9.0.0",
     "lodash": "^4.17.21",

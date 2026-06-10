@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import useragent from "express-useragent";
 import requestIp from "request-ip";
 import cookieParser from "cookie-parser";
@@ -66,6 +67,19 @@ class App {
         })
       );
     }
+
+    // Helmet: standard HTTP security headers. Registered globally so every
+    // response carries the baseline protections. CSP is intentionally left
+    // disabled (tracked in issue 008 as a future consideration). CORP is
+    // relaxed to "cross-origin" so the separate Next.js client (port 3379)
+    // can still load uploaded images and static assets from this API
+    // (port 3001) without being blocked by the browser.
+    this.server.use(
+      helmet({
+        contentSecurityPolicy: false,
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+      })
+    );
 
     this.server.use(express.urlencoded({ extended: false }));
     this.server.use(express.json());
