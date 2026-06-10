@@ -43,30 +43,33 @@ class App {
   }
 
   middlewares() {
+    // --- CORS -------------------------------------------------------
+    // Origins are driven by the ALLOWED_ORIGINS env var. Multiple
+    // origins are separated by "|" (e.g. "https://example.com|http://localhost:3379").
+    // Fallback is http://localhost:3379 (the default Next.js dev port).
+    // credentials: true  — required because the API sets httpOnly cookies
+    //   for JWT auth. When credentials is true the browser MUST receive
+    //   an explicit origin (not "*"), so the wildcard value is rejected.
     const origins = ENV.ALLOWED_ORIGINS.includes("|")
       ? ENV.ALLOWED_ORIGINS?.split("|")
       : ENV.ALLOWED_ORIGINS;
 
-    if (ENV.MODE === "development") {
-      logger.info(`[SERVER] origin ${ENV.ALLOWED_ORIGINS}`);
-      this.server.use(
-        cors({
-          origin: origins,
-          methods: ["GET", "POST", "PUT", "DELETE"],
-          // allowedHeaders: ["Content-Type"],
-          // exposedHeaders: ["*", "Authorization"],
-          credentials: true,
-        })
-      );
-    } else {
-      this.server.use(
-        cors({
-          origin: origins,
-          methods: ["GET", "POST", "PUT", "DELETE"],
-          credentials: true,
-        })
+    logger.info(`[SERVER] CORS origins: ${ENV.ALLOWED_ORIGINS}`);
+
+    if (!process.env.ALLOWED_ORIGINS) {
+      logger.warn(
+        "[SERVER] ALLOWED_ORIGINS env var is not set — falling back to default (http://localhost:3379). " +
+          "Set ALLOWED_ORIGINS in your .env file to match your deployment."
       );
     }
+
+    this.server.use(
+      cors({
+        origin: origins,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true,
+      })
+    );
 
     // Helmet: standard HTTP security headers. Registered globally so every
     // response carries the baseline protections. CSP is intentionally left
