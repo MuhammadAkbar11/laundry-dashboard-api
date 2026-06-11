@@ -12,6 +12,7 @@ import {
 import CustomerService from "./customer.service";
 import Pagination from "../../helpers/pagination.helper";
 import { parsingResult } from "../../utils/utils";
+import { sanitizeText } from "../../utils/sanitizer.utils";
 
 @BindAllMethods
 class CustomerController extends BaseController {
@@ -156,9 +157,9 @@ class CustomerController extends BaseController {
       const { name, address, phone, customerLevelId, point } = req.body;
 
       const newCustomer = await this.service.create({
-        name,
-        address,
-        phone,
+        name: sanitizeText(name),
+        address: sanitizeText(address),
+        phone: sanitizeText(phone),
         customerLevelId,
         point,
       });
@@ -197,9 +198,9 @@ class CustomerController extends BaseController {
       }
 
       const updatedCustomer = await this.service.update(customerIdParam, {
-        name: name || existingCustomer.name,
-        address: address || existingCustomer.address,
-        phone: phone || existingCustomer.phone,
+        name: sanitizeText(name) || existingCustomer.name,
+        address: sanitizeText(address) || existingCustomer.address,
+        phone: sanitizeText(phone) || existingCustomer.phone,
         customerLevelId: customerLevelId || existingCustomer.customerLevelId,
         point: point || existingCustomer.point,
       });

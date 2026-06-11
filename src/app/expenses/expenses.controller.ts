@@ -12,6 +12,7 @@ import {
 import ExpensesService from "./expenses.service";
 import Pagination from "../../helpers/pagination.helper";
 import { parsingResult } from "../../utils/utils";
+import { sanitizeMultilineText } from "../../utils/sanitizer.utils";
 
 @BindAllMethods
 class ExpensesController extends BaseController {
@@ -141,7 +142,7 @@ class ExpensesController extends BaseController {
       const userId = (req as any).user?.userId as string;
 
       const result = await this.service.create({
-        description,
+        description: sanitizeMultilineText(description),
         total,
         userId,
         expensesInvoice: "",
@@ -185,7 +186,9 @@ class ExpensesController extends BaseController {
       }
 
       const updated = await this.service.update(expensesIdParam, {
-        description: description || existing.description,
+        description: description
+          ? sanitizeMultilineText(description)
+          : existing.description,
         total: total || existing.total,
       });
 

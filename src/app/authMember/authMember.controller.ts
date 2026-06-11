@@ -4,6 +4,7 @@ import type { Details as UserAgentDetails } from "express-useragent";
 import { DEFAULT_USER_AVATAR, MODE } from "../../configs/vars.config";
 import { BaseController } from "../../core";
 import { userAgentDeviceType } from "../../utils/utils";
+import { sanitizeText } from "../../utils/sanitizer.utils";
 import _, { omit } from "lodash";
 import AuthMemberService from "./authMember.service";
 import { SignInMemberPayload, SignUpMemberPayload } from "./authMember.schema";
@@ -26,7 +27,7 @@ class AuthMemberController extends BaseController {
       const user = await this.service.signUpMember({
         email: req.body.email,
         password: req.body.password,
-        username: req.body.username,
+        username: sanitizeText(req.body.username),
         avatar: avatar,
         status: "ACTIVE",
       });

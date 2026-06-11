@@ -21,6 +21,7 @@ import {
   USER_STATUS,
 } from "../../configs/vars.config";
 import FileHelper from "../../helpers/file.helper";
+import { sanitizeText } from "../../utils/sanitizer.utils";
 
 type UserSorting =
   SortingTypes<Prisma.UserOrderByWithRelationAndSearchRelevanceInput>;
@@ -135,7 +136,7 @@ class UserController extends BaseController {
         email: req.body.email,
         password: DEFAULT_USER_PASSWORD,
         avatar: DEFAULT_USER_AVATAR,
-        name: req.body.name,
+        name: sanitizeText(req.body.name),
         status: "ACTIVE",
       });
       return res.status(201).json({
@@ -190,7 +191,7 @@ class UserController extends BaseController {
       }
 
       const updatedUser = await this.service.update(userIdParam, {
-        name: name || existingUser.name,
+        name: sanitizeText(name) || existingUser.name,
         role: (role as Role) || existingUser.role,
         email: email || existingUser.email,
         avatar: avatar,

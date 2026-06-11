@@ -11,6 +11,7 @@ import {
 import { Member } from "@prisma/client";
 import { BaseController } from "../../core";
 import { isNumericQuery, parsingResult, searchArray } from "../../utils/utils";
+import { sanitizeText } from "../../utils/sanitizer.utils";
 import _ from "lodash";
 import bcrypt from "bcrypt";
 import MemberService from "./member.service";
@@ -193,7 +194,7 @@ class MemberController extends BaseController {
 
       const result = await this.prisma.$transaction(async tx => {
         const memberData: any = {};
-        if (username !== undefined) memberData.username = username;
+        if (username !== undefined) memberData.username = sanitizeText(username);
         if (email !== undefined) memberData.email = email;
         if (status !== undefined) memberData.status = status;
         if (password !== undefined) {
@@ -208,10 +209,10 @@ class MemberController extends BaseController {
         let updatedCustomer = existing.customerId;
         if (customer && existing.customerId) {
           const custData: any = {};
-          if (customer.name !== undefined) custData.name = customer.name;
+          if (customer.name !== undefined) custData.name = sanitizeText(customer.name);
           if (customer.address !== undefined)
-            custData.address = customer.address;
-          if (customer.phone !== undefined) custData.phone = customer.phone;
+            custData.address = sanitizeText(customer.address);
+          if (customer.phone !== undefined) custData.phone = sanitizeText(customer.phone);
           if (customer.customerLevelId !== undefined)
             custData.customerLevelId = customer.customerLevelId;
           if (Object.keys(custData).length > 0) {
@@ -352,8 +353,8 @@ class MemberController extends BaseController {
       const order = await this.service.createLaundryQueueOrder({
         pickupAt: req.body.pickupAt,
         deliveryType: req.body.deliveryType,
-        deliveryAddress: req.body.deliveryAddress,
-        note: req.body.note,
+        deliveryAddress: sanitizeText(req.body.deliveryAddress),
+        note: sanitizeText(req.body.note),
         customerId: customer?.customerId as string,
         services: laundryServices,
       });
@@ -939,12 +940,16 @@ class MemberController extends BaseController {
       const result = await this.prisma.$transaction(async tx => {
         const updatedMember = await tx.member.update({
           where: { memberId: memberIdParam },
-          data: { username },
+          data: { username: sanitizeText(username) },
         });
 
         const updatedCustomer = await tx.customer.update({
           where: { customerId: existingMember?.customerId as string },
-          data: { name, address, phone },
+          data: {
+            name: sanitizeText(name),
+            address: sanitizeText(address),
+            phone: sanitizeText(phone),
+          },
         });
 
         return { customer: updatedCustomer, member: updatedMember };

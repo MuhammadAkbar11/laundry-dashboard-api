@@ -12,6 +12,7 @@ import {
 import FileHelper from "../../helpers/file.helper";
 import { BaseController } from "../../core";
 import { userAgentDeviceType } from "../../utils/utils";
+import { sanitizeText } from "../../utils/sanitizer.utils";
 import _ from "lodash";
 
 @BindAllMethods
@@ -40,7 +41,7 @@ class AuthController extends BaseController {
       const user = await this.service.signUpUser({
         email: req.body.email,
         password: req.body.password,
-        name: req.body.name,
+        name: sanitizeText(req.body.name),
         role: req.body.role as Role,
         avatar: avatar,
         status: "PENDING",
