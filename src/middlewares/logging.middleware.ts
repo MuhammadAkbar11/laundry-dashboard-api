@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import pinoHttp from "pino-http";
 import logger from "../configs/logger.config";
+import { getCorrelationId } from "./correlation.middleware";
 import { IncomingMessage } from "http";
 import { ServerResponse } from "http";
 
@@ -21,6 +22,13 @@ const httpMethodColors: HttpMethodColors = {
 
 const log = pinoHttp({
   logger: logger,
+  customProps(req) {
+    const correlationId =
+      (req as IncomingMessage & { correlationId?: () => string | undefined })
+        .correlationId?.() || getCorrelationId();
+
+    return correlationId ? { correlationId } : {};
+  },
   serializers: {
     res() {
       return undefined;

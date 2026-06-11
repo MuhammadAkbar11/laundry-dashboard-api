@@ -1,6 +1,7 @@
 import pino from "pino";
 import pinoPretty from "pino-pretty";
 import { dateUTC } from "./date.config";
+import { getCorrelationId } from "../middlewares/correlation.middleware";
 
 const timeformat = "DD.MM.YYYY|HH:mm:ss";
 const time = dateUTC().tz("Asia/Jakarta").format(timeformat);
@@ -22,6 +23,10 @@ const logger = pino(
       level: label => {
         return { level: label };
       },
+    },
+    mixin() {
+      const correlationId = getCorrelationId();
+      return correlationId ? { correlationId } : {};
     },
     timestamp: () => `,"time": "${time}"`,
   },

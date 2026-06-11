@@ -6,6 +6,10 @@ import requestIp from "request-ip";
 import cookieParser from "cookie-parser";
 import DemoRouter from "./app/demo/demo.routes";
 import pinoHttpLogger from "./middlewares/logging.middleware";
+import {
+  correlationIdMiddleware,
+  correlationIdResponseHeaderMiddleware,
+} from "./middlewares/correlation.middleware";
 import { ENV_STATIC_FOLDER_PATH, STATIC_FOLDER } from "./configs/vars.config";
 import * as ENV from "./configs/vars.config";
 import {
@@ -67,6 +71,7 @@ class App {
       cors({
         origin: origins,
         methods: ["GET", "POST", "PUT", "DELETE"],
+        exposedHeaders: ["X-Correlation-ID"],
         credentials: true,
       })
     );
@@ -83,6 +88,12 @@ class App {
         crossOriginResourcePolicy: { policy: "cross-origin" },
       })
     );
+
+    // Correlation ID: generates a UUID per request, or reuses an incoming
+    // X-Correlation-ID header. Registered before request-aware middleware
+    // and pinoHttpLogger so logs can include the same correlationId.
+    this.server.use(correlationIdMiddleware);
+    this.server.use(correlationIdResponseHeaderMiddleware);
 
     this.server.use(express.urlencoded({ extended: false }));
     this.server.use(express.json());
