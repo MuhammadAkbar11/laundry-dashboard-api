@@ -3,7 +3,12 @@ import { Session, User } from "@prisma/client";
 import { omit, get } from "lodash";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseService } from "../../core";
-import { comparePassword, hashPassword } from "../../utils/auth.utils";
+import {
+  comparePassword,
+  hashPassword,
+  generateResetToken,
+  hashResetToken,
+} from "../../utils/auth.utils";
 import JWT from "../../helpers/jwt.helper";
 import {
   ACCESS_TOKEN_MAX_AGE,
@@ -13,8 +18,10 @@ import {
   MODE,
   REFRESH_TOKEN_MAX_AGE,
   REFRESH_TOKEN_TTL,
+  RESET_TOKEN_EXPIRY_MINUTES,
 } from "../../configs/vars.config";
 import { dateUTC } from "../../configs/date.config";
+import EmailService from "../../services/email/email.service";
 
 export interface ISessionPayload
   extends Omit<
@@ -284,6 +291,86 @@ class AuthService extends BaseService {
     );
 
     return accessToken;
+  }
+
+  /**
+   * Generate a password reset token for a user account. Sends a
+   * reset email if the account exists. Always returns a generic
+   * response to prevent email enumeration.
+   */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) return;
+
+    const { rawToken, tokenHash } = generateResetToken();
+    const expiresAt = dateUTC().add(RESET_TOKEN_EXPIRY_MINUTES, "minute").toISOString();
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        tokenHash,
+        userId: user.userId,
+        expiresAt,
+      },
+    });
+
+    const clientUrl =
+      MODE !== "development" ? CLIENT_DOMAIN : ALLOWED_ORIGINS.split("|")[0];
+    const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
+
+    const emailService = new EmailService();
+    await emailService.sendTemplated(
+      "auto",
+      {
+        id: "password-reset",
+        options: {
+          memberName: user.name,
+          resetUrl,
+          expiresInMinutes: RESET_TOKEN_EXPIRY_MINUTES,
+        },
+      },
+      { to: user.email }
+    );
+  }
+
+  /**
+   * Validate a reset token and update the user's password. Throws
+   * if the token is invalid, expired, or already used.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = hashResetToken(token);
+
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!resetToken) {
+      throw this.error("AUTH", 400, "Token reset password tidak valid");
+    }
+
+    if (resetToken.usedAt) {
+      throw this.error("AUTH", 400, "Token reset password sudah digunakan");
+    }
+
+    if (new Date(resetToken.expiresAt) < new Date()) {
+      throw this.error("AUTH", 400, "Token reset password sudah kedaluwarsa");
+    }
+
+    if (!resetToken.userId) {
+      throw this.error("AUTH", 400, "Token reset password tidak valid");
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { userId: resetToken.userId },
+        data: { password: hashedPassword },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { tokenHash },
+        data: { usedAt: new Date() },
+      }),
+    ]);
   }
 }
 

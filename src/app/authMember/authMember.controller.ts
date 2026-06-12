@@ -7,7 +7,12 @@ import { userAgentDeviceType } from "../../utils/utils";
 import { sanitizeText } from "../../utils/sanitizer.utils";
 import _, { omit } from "lodash";
 import AuthMemberService from "./authMember.service";
-import { SignInMemberPayload, SignUpMemberPayload } from "./authMember.schema";
+import {
+  ForgotMemberPasswordPayload,
+  ResetMemberPasswordPayload,
+  SignInMemberPayload,
+  SignUpMemberPayload,
+} from "./authMember.schema";
 
 @BindAllMethods
 class AuthMemberController extends BaseController {
@@ -175,6 +180,37 @@ class AuthMemberController extends BaseController {
 
       return res.json({
         message: "Logout Berhasil! Sampai Jumpa Lagi",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async postForgotMemberPassword(
+    req: Request<{}, {}, ForgotMemberPasswordPayload["body"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await this.service.forgotPassword(req.body.email);
+      return res.status(200).json({
+        message:
+          "Jika akun dengan email tersebut terdaftar, instruksi reset kata sandi telah dikirim.",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async postResetMemberPassword(
+    req: Request<{}, {}, ResetMemberPasswordPayload["body"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await this.service.resetPassword(req.body.token, req.body.password);
+      return res.status(200).json({
+        message: "Kata sandi berhasil direset. Silakan login dengan kata sandi baru.",
       });
     } catch (error: any) {
       this.nextError(next, error);

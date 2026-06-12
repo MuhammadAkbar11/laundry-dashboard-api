@@ -1,7 +1,12 @@
 import { NextFunction, Request, Response } from "express";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import AuthService from "./auth.service";
-import { SignInUserPayload, SignUpUserPayload } from "./auth.schema";
+import {
+  ForgotPasswordPayload,
+  ResetPasswordPayload,
+  SignInUserPayload,
+  SignUpUserPayload,
+} from "./auth.schema";
 import { Role } from "@prisma/client";
 import type { Details as UserAgentDetails } from "express-useragent";
 import {
@@ -202,6 +207,37 @@ class AuthController extends BaseController {
 
       return res.json({
         message: "Logout berhasil, sampai jumpa lagi!",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async postForgotPassword(
+    req: Request<{}, {}, ForgotPasswordPayload["body"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await this.service.forgotPassword(req.body.email);
+      return res.status(200).json({
+        message:
+          "Jika akun dengan email tersebut terdaftar, instruksi reset kata sandi telah dikirim.",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async postResetPassword(
+    req: Request<{}, {}, ResetPasswordPayload["body"]>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await this.service.resetPassword(req.body.token, req.body.password);
+      return res.status(200).json({
+        message: "Kata sandi berhasil direset. Silakan login dengan kata sandi baru.",
       });
     } catch (error: any) {
       this.nextError(next, error);

@@ -117,6 +117,8 @@ export const AUTH_RATE_LIMIT_MESSAGE =
   "Terlalu banyak percobaan login. Silahkan coba lagi nanti.";
 export const AUTH_RATE_LIMIT_LOG_NAME = "AUTH_RATE_LIMIT";
 
+export const RESET_TOKEN_EXPIRY_MINUTES = 15;
+
 export const HTTP_STATUS_CODE = {
   OK: 200,
   EDIT: 201,

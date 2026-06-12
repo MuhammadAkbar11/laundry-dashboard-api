@@ -7,7 +7,12 @@ import {
 } from "../../middlewares/rateLimit.middleware";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import AuthMemberController from "./authMember.controller";
-import { signInMemberSchema, signUpMemberSchema } from "./authMember.schema";
+import {
+  forgotMemberPasswordSchema,
+  resetMemberPasswordSchema,
+  signInMemberSchema,
+  signUpMemberSchema,
+} from "./authMember.schema";
 import {
   deserializeMember,
   requiredMember,
@@ -43,6 +48,16 @@ class AuthMemberRouter extends BaseRouter<AuthMemberController> {
       deserializeMember,
       requiredMember,
       this.controller.postSignOutMember
+    );
+    this.router.post(
+      "/member/forgot-password",
+      [validateResource(forgotMemberPasswordSchema)],
+      this.controller.postForgotMemberPassword
+    );
+    this.router.post(
+      "/member/reset-password",
+      [validateResource(resetMemberPasswordSchema)],
+      this.controller.postResetMemberPassword
     );
   }
 }

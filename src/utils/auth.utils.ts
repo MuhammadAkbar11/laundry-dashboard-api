@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { google } from "googleapis";
 import {
   OAUTH_CLIENTID,
@@ -16,6 +17,28 @@ export async function hashPassword(password: string) {
 
 export async function comparePassword(candidatePw: string, password: string) {
   return bcrypt.compare(candidatePw, password).catch(_e => false);
+}
+
+/**
+ * Generate a cryptographically secure random reset token and its
+ * SHA-256 hash. The raw token is sent to the user via email; only
+ * the hash is stored in the database.
+ */
+export function generateResetToken(): {
+  rawToken: string;
+  tokenHash: string;
+} {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  return { rawToken, tokenHash };
+}
+
+/**
+ * Hash a reset token for database lookup. Used when validating
+ * a token submitted by the user.
+ */
+export function hashResetToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 // Function to check if the Refresh Token has expired

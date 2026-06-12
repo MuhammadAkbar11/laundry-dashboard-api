@@ -7,7 +7,12 @@ import {
   authRateLimit,
 } from "../../middlewares/rateLimit.middleware";
 import AuthController from "./auth.controller";
-import { signInUserSchema, signUpUserSchema } from "./auth.schema";
+import {
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  signInUserSchema,
+  signUpUserSchema,
+} from "./auth.schema";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { requiredUser } from "../../middlewares/auth.middleware";
 
@@ -36,6 +41,16 @@ class AuthRouter extends BaseRouter<AuthController> {
       "/user/signout",
       requiredUser,
       this.controller.postSignOutUser
+    );
+    this.router.post(
+      "/user/forgot-password",
+      [validateResource(forgotPasswordSchema)],
+      this.controller.postForgotPassword
+    );
+    this.router.post(
+      "/user/reset-password",
+      [validateResource(resetPasswordSchema)],
+      this.controller.postResetPassword
     );
   }
 }
