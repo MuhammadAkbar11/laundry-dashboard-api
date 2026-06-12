@@ -113,5 +113,4 @@ src/
 
 - The `.env.development` file is committed (contains dev credentials). For production, use a separate `.env`.
 - Uploaded files go to `.node_dev/uploads/` in dev and `public/uploads/` in prod.
-- Tests are not yet configured (Jest is installed but no test suite exists — tracked in `.dev/TECHNICAL_DEBT.md` KI-02).
-- See `AGENTS.md` in the repo root for full development conventions and known issues.
+
