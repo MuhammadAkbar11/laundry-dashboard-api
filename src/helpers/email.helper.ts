@@ -1,67 +1,70 @@
-import nodemailer from "nodemailer";
+import type { SendMailOptions } from "nodemailer";
+import { DEVS_EMAIL, ZOHOMAIL } from "../configs/vars.config";
 import BaseError from "./error.helper";
-import {
-  createOAuthTransporter,
-  createZohoMailTransporter,
-} from "../configs/nodemailer.config";
-import { DEVS_EMAIL, GMAIL, ZOHOMAIL } from "../configs/vars.config";
-import logger from "../configs/logger.config";
 import { BindAllMethods } from "../utils/decorators.utils";
 import { packageJsonInfo } from "../utils/utils";
+import EmailService from "../services/email/email.service";
+import type { EmailProvider } from "../services/email/email.types";
 
-type TransporterTypes = "gmail-oauth" | "zohomail";
+/**
+ * Transporter identifiers accepted by the legacy `EmailSender`
+ * constructor. The class is preserved for backward compatibility with
+ * pre-issue-013 callers; new business code should use `EmailService`
+ * directly.
+ *
+ * - `"gmail-oauth"`  → mapped to the `gmail` provider.
+ * - `"gmail"`        → mapped to the `gmail` provider.
+ * - `"zohomail"`     → mapped to the `zohomail` provider.
+ * - `"auto"`         → mapped to the `auto` provider.
+ */
+type LegacyTransporterTypes = "gmail-oauth" | "gmail" | "zohomail" | "auto";
 
+function legacyToProvider(t: LegacyTransporterTypes): EmailProvider {
+  if (t === "gmail-oauth") return "gmail";
+  return t;
+}
+
+/**
+ * Thin wrapper around `EmailService` for backward compatibility.
+ *
+ * New business modules should use `EmailService` directly. This class
+ * exists so pre-issue-013 call sites continue to work without
+ * modification.
+ */
 @BindAllMethods
 class EmailSender {
-  private transporter: TransporterTypes;
+  private transporter: LegacyTransporterTypes;
+  private service: EmailService;
 
-  constructor(transporter?: TransporterTypes) {
-    this.transporter = transporter || ("gmail" as TransporterTypes);
+  constructor(transporter?: LegacyTransporterTypes) {
+    this.transporter = transporter || "gmail";
+    this.service = new EmailService();
   }
 
-  async sendEmail(emailOptions: nodemailer.SendMailOptions): Promise<void> {
-    try {
-      let fromEmail = GMAIL;
-      let emailTransporter = null;
-      if (this.transporter === "zohomail") {
-        fromEmail = ZOHOMAIL;
-        emailTransporter = await createZohoMailTransporter();
-      } else {
-        emailTransporter = await createOAuthTransporter();
-      }
-      logger.info(
-        `[HELPER] Sending email with ${fromEmail} email to ${emailOptions.to}`
-      );
-      emailOptions.from = fromEmail;
-      if (emailTransporter) {
-        return await emailTransporter.sendMail(emailOptions);
-      }
-
-      throw new BaseError(
-        "MAIL_ERR",
-        400,
-        "Failed to send email bacause invalid transporter"
-      );
-    } catch (err: any) {
-      const errors = new BaseError(
-        err?.name || "MAIL_ERR",
-        err.statusCode,
-        err.message,
-        {
-          isOperational: true,
-        }
-      );
-      throw errors;
-    }
+  async sendEmail(emailOptions: SendMailOptions): Promise<void> {
+    const provider = legacyToProvider(this.transporter);
+    await this.service.send(provider, {
+      to: emailOptions.to as any,
+      cc: emailOptions.cc as any,
+      bcc: emailOptions.bcc as any,
+      subject: emailOptions.subject,
+      text: typeof emailOptions.text === "string" ? emailOptions.text : undefined,
+      html: typeof emailOptions.html === "string" ? emailOptions.html : undefined,
+      attachments: emailOptions.attachments as any,
+      replyTo: typeof emailOptions.replyTo === "string" ? emailOptions.replyTo : undefined,
+      from: typeof emailOptions.from === "string" ? emailOptions.from : undefined,
+      headers: emailOptions.headers as Record<string, string> | undefined,
+    });
   }
 
+  /**
+   * Send the "OAuth refresh token expired" notification to the
+   * developers. Uses the ZohoMail provider via EmailService.
+   */
   static async sendRefreshTokenErrorEmail(): Promise<void> {
     try {
-      const emailTransporter = await createZohoMailTransporter();
-
+      const service = new EmailService();
       const appName = `"${packageJsonInfo().description}"`;
-
-      // const emailContent = `Dear developers,<br><br>We are writing to inform you that the Google OAuth Refresh Token used for authentication in <strong>${appName}</strong> has expired or is invalid. This is preventing users from accessing certain features of the application, and we need your help to resolve the issue.<br><br>Please take the necessary steps to obtain a new Google OAuth Refresh Token and update <strong>${appName}</strong> as soon as possible to ensure that users can continue to use all of its features.<br><br>If you have any questions or need further assistance, please feel free to contact us.<br><br>Thank you,<br><br>The ${appName} Team`;
 
       const emailContent = `
       <html>
@@ -80,15 +83,12 @@ class EmailSender {
       </html>
       `;
 
-      const emailOptions: nodemailer.SendMailOptions = {
+      await service.send("zohomail", {
         from: ZOHOMAIL,
-        // to: DEVS_EMAIL,
-        to: "bacef86170@ippals.com",
+        to: DEVS_EMAIL,
         subject: `URGENT: Google OAuth Refresh Token Expired/Invalid for ${appName}`,
         html: emailContent,
-      };
-
-      return await emailTransporter.sendMail(emailOptions);
+      });
     } catch (err: any) {
       const errors = new BaseError(
         err?.name || "MAIL_ERR",
@@ -96,7 +96,7 @@ class EmailSender {
         err.message,
         {
           isOperational: true,
-        }
+        },
       );
       throw errors;
     }
