@@ -186,3 +186,23 @@ export type UpdateMemberProfilePayload = z.TypeOf<
 export type ReadAdminMembersPayload = z.TypeOf<typeof readAdminMembersSchema>;
 export type UpdateAdminMemberPayload = z.TypeOf<typeof updateAdminMemberSchema>;
 export type ReadAdminMemberPayload = z.TypeOf<typeof readAdminMemberSchema>;
+
+export const readMemberNotificationsSchema = z.object({
+  query: z.object({
+    _page: z.string().optional(),
+    _limit: z.string().optional(),
+  }),
+});
+
+export const readMemberNotificationByIdSchema = z.object({
+  params: z.object({
+    notificationId: z.string().uuid(),
+  }),
+});
+
+export type ReadMemberNotificationsPayload = z.TypeOf<
+  typeof readMemberNotificationsSchema
+>;
+export type ReadMemberNotificationByIdPayload = z.TypeOf<
+  typeof readMemberNotificationByIdSchema
+>;

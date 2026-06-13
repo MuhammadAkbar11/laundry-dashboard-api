@@ -17,6 +17,7 @@ import bcrypt from "bcrypt";
 import MemberService from "./member.service";
 import FileHelper from "../../helpers/file.helper";
 import Pagination from "../../helpers/pagination.helper";
+import NotificationService from "../../services/notification/notification.service";
 import {
   MemberOrderPayload,
   PostPaymentPayload,
@@ -29,6 +30,8 @@ import {
   ReadMemberPaymentByInvoicePayload,
   ReadMemberTrxPayload,
   UpdateMemberProfilePayload,
+  ReadMemberNotificationsPayload,
+  ReadMemberNotificationByIdPayload,
 } from "./member.schema";
 import {
   DeliveryType,
@@ -46,6 +49,7 @@ import { ReadLaundryRoomPayload } from "../laundryRoom/laundryRoom.schema";
 @BindAllMethods
 class MemberController extends BaseController {
   private readonly service = new MemberService();
+  private readonly notificationService = new NotificationService();
   constructor() {
     super();
   }
@@ -958,6 +962,98 @@ class MemberController extends BaseController {
       res.status(200).json({
         message: this.getSuccessMessage("update", "Member Profile"),
         profile: parsingResult(result),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  // ── Member notifications ───────────────────────────────────────
+
+  public async getMemberNotifications(
+    req: Request<{}, {}, {}, ReadMemberNotificationsPayload["query"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const memberId = req.member?.memberId as string;
+      const { _page = 1, _limit = 10 } = req.query;
+
+      const paginated = new Pagination(+_page, +_limit, {
+        defaultLimit: 20,
+        itemKeyName: "notifications",
+      });
+      const { limit, skip } = paginated.getPagination();
+
+      const notifications =
+        await this.notificationService.getMemberNotifications(memberId, {
+          skip,
+          take: limit,
+        });
+
+      const total = await this.notificationService.getMemberUnreadCount(
+        memberId,
+      );
+      const totalAll = await this.prisma.memberNotification.count({
+        where: { memberId },
+      });
+
+      const data = paginated.getPagingData(totalAll, parsingResult(notifications));
+
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Notifikasi"),
+        data: { unreadCount: total, ...data },
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async getMemberUnreadCount(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const memberId = req.member?.memberId as string;
+      const count = await this.notificationService.getMemberUnreadCount(memberId);
+      res.status(200).json({
+        message: "Jumlah notifikasi belum dibaca",
+        unreadCount: count,
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async patchReadMemberNotification(
+    req: Request<ReadMemberNotificationByIdPayload["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { notificationId } = req.params;
+      await this.notificationService.markMemberNotificationAsRead(
+        notificationId,
+      );
+      res.status(200).json({
+        message: "Notifikasi telah ditandai sebagai dibaca",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async patchReadAllMemberNotifications(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const memberId = req.member?.memberId as string;
+      await this.notificationService.markAllMemberNotificationsAsRead(memberId);
+      res.status(200).json({
+        message: "Semua notifikasi telah ditandai sebagai dibaca",
       });
     } catch (error: any) {
       this.nextError(next, error);

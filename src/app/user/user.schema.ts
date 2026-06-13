@@ -50,3 +50,23 @@ export type CreateUserPayload = z.TypeOf<typeof createUserSchema>;
 export type UpdateUserPayload = z.TypeOf<typeof updateUserSchema>;
 export type ReadUserPayload = z.infer<typeof readUserSchema>;
 export type DeleteUserPayload = z.infer<typeof deleteUserSchema>;
+
+export const readUserNotificationsSchema = z.object({
+  query: z.object({
+    _page: z.string().optional(),
+    _limit: z.string().optional(),
+  }),
+});
+
+export const readUserNotificationByIdSchema = z.object({
+  params: z.object({
+    notificationId: z.string().uuid(),
+  }),
+});
+
+export type ReadUserNotificationsPayload = z.TypeOf<
+  typeof readUserNotificationsSchema
+>;
+export type ReadUserNotificationByIdPayload = z.TypeOf<
+  typeof readUserNotificationByIdSchema
+>;

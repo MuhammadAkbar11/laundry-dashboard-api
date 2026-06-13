@@ -7,6 +7,7 @@ import { seedInitCustomerLevels } from "./customerlvl.seed";
 import { seedGeneratedCustomer } from "./customer.seed";
 import { seedInitServices } from "./service.seed";
 import { seedInitSettings } from "./setting.seed";
+import { seedInitNotifications } from "./notification.seed";
 
 dotenvConfig;
 
@@ -50,6 +51,7 @@ const prompt = inquirer.createPromptModule();
           seedInitCustomerLevels(trx),
           seedInitServices(trx),
           seedInitSettings(trx),
+          seedInitNotifications(trx),
         ]);
       });
 

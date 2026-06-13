@@ -13,6 +13,8 @@ import {
   readAdminMembersSchema,
   updateAdminMemberSchema,
   readAdminMemberSchema,
+  readMemberNotificationsSchema,
+  readMemberNotificationByIdSchema,
 } from "./member.schema";
 import {
   deserializeMember,
@@ -135,6 +137,34 @@ class MemberRouter extends BaseRouter<MemberController> {
       requiredMember,
       [validateResource(readMemberLaundryRoomDetailSchema)],
       this.controller.getLaundryRoomByID,
+    );
+
+    // Member notifications
+    this.router.get(
+      "/notifications",
+      deserializeMember,
+      requiredMember,
+      [validateResource(readMemberNotificationsSchema)],
+      this.controller.getMemberNotifications,
+    );
+    this.router.get(
+      "/notifications/unread-count",
+      deserializeMember,
+      requiredMember,
+      this.controller.getMemberUnreadCount,
+    );
+    this.router.patch(
+      "/notifications/:notificationId/read",
+      deserializeMember,
+      requiredMember,
+      [validateResource(readMemberNotificationByIdSchema)],
+      this.controller.patchReadMemberNotification,
+    );
+    this.router.patch(
+      "/notifications/read-all",
+      deserializeMember,
+      requiredMember,
+      this.controller.patchReadAllMemberNotifications,
     );
   }
 }

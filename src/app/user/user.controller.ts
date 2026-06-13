@@ -7,8 +7,11 @@ import {
   ReadOneUserPayload,
   ReadUserPayload,
   UpdateUserPayload,
+  ReadUserNotificationsPayload,
+  ReadUserNotificationByIdPayload,
 } from "./user.schema";
 import UserService from "./user.service";
+import NotificationService from "../../services/notification/notification.service";
 import { BaseController } from "../../core";
 import { SortingTypes } from "../../utils/types/types";
 import Pagination from "../../helpers/pagination.helper";
@@ -29,6 +32,7 @@ type UserSorting =
 @BindAllMethods
 class UserController extends BaseController {
   private service = new UserService();
+  private notificationService = new NotificationService();
   constructor() {
     super();
   }
@@ -259,6 +263,102 @@ class UserController extends BaseController {
       res.status(200).json({
         message: this.getSuccessMessage("delete", "User", userId),
         user: parsingResult(deletedService),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  // ── User notifications ─────────────────────────────────────────
+
+  public async getUserNotifications(
+    req: Request<{}, {}, {}, ReadUserNotificationsPayload["query"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.userId as string;
+      const { _page = 1, _limit = 10 } = req.query;
+
+      const paginated = new Pagination(+_page, +_limit, {
+        defaultLimit: 20,
+        itemKeyName: "notifications",
+      });
+      const { limit, skip } = paginated.getPagination();
+
+      const notifications =
+        await this.notificationService.getUserNotifications(userId, {
+          skip,
+          take: limit,
+        });
+
+      const unreadCount =
+        await this.notificationService.getUserUnreadCount(userId);
+      const totalAll = await this.prisma.userNotification.count({
+        where: {
+          OR: [{ userId }, { isGlobal: true }],
+        },
+      });
+
+      const data = paginated.getPagingData(
+        totalAll,
+        parsingResult(notifications),
+      );
+
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Notifikasi"),
+        data: { unreadCount, ...data },
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async getUserUnreadCount(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.userId as string;
+      const count = await this.notificationService.getUserUnreadCount(userId);
+      res.status(200).json({
+        message: "Jumlah notifikasi belum dibaca",
+        unreadCount: count,
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async patchReadUserNotification(
+    req: Request<ReadUserNotificationByIdPayload["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { notificationId } = req.params;
+      await this.notificationService.markUserNotificationAsRead(
+        notificationId,
+      );
+      res.status(200).json({
+        message: "Notifikasi telah ditandai sebagai dibaca",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async patchReadAllUserNotifications(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.userId as string;
+      await this.notificationService.markAllUserNotificationsAsRead(userId);
+      res.status(200).json({
+        message: "Semua notifikasi telah ditandai sebagai dibaca",
       });
     } catch (error: any) {
       this.nextError(next, error);
