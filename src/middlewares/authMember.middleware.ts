@@ -29,8 +29,8 @@ function getTokens(req: express.Request): {
   accessToken: string;
   refreshToken: string;
 } {
-  let accessToken = req.cookies?.accessToken as string;
-  let refreshToken = req.cookies?.refreshToken as string;
+  let accessToken = req.cookies?.memberAccessToken as string;
+  let refreshToken = req.cookies?.memberRefreshToken as string;
 
   if (req.get("member-agent")?.includes("Postman")) {
     logger.info("[SESSIN] Get refreshToken & accessToken using req headers");
@@ -51,7 +51,7 @@ function setNewAccessTokenCookie(
 ) {
   const memberAgent = req.get("member-agent");
 
-  res.cookie("accessToken", accessToken, {
+  res.cookie("memberAccessToken", accessToken, {
     maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
     httpOnly: true,
     sameSite: MODE !== "development" ? "none" : "strict",

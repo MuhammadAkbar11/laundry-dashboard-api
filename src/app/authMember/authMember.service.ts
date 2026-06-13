@@ -215,21 +215,21 @@ class AuthMemberService extends BaseService {
       { expiresIn: REFRESH_TOKEN_TTL }, // 7d
     );
 
-    // res.cookie("refreshToken", refreshToken, {
+    // res.cookie("memberRefreshToken", refreshToken, {
     //   httpOnly: true,
     //   sameSite: MODE === "development" ? "strict" : "none",
     //   path: "/",
     //   maxAge: REFRESH_TOKEN_MAX_AGE,
     // });
 
-    // res.cookie("accessToken", accessToken, {
+    // res.cookie("memberAccessToken", accessToken, {
     //   maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
     //   sameSite: MODE === "development" ? "strict" : "none",
     //   path: "/",
     //   httpOnly: true,
     // });
 
-    res.cookie("refreshToken", refreshToken, {
+    res.cookie("memberRefreshToken", refreshToken, {
       httpOnly: true,
       sameSite: MODE !== "development" ? "none" : "strict",
       path: "/",
@@ -238,7 +238,7 @@ class AuthMemberService extends BaseService {
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
-    res.cookie("accessToken", accessToken, {
+    res.cookie("memberAccessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
       httpOnly: true,
       sameSite: MODE !== "development" ? "none" : "strict",
@@ -251,25 +251,25 @@ class AuthMemberService extends BaseService {
   }
 
   public resetSessionToken(res: express.Response) {
-    res.cookie("refreshToken", null, {
+    res.cookie("memberRefreshToken", null, {
       httpOnly: true,
       sameSite: "none",
       path: "/",
     });
 
-    res.cookie("accessToken", null, {
+    res.cookie("memberAccessToken", null, {
       sameSite: "none",
       path: "/",
       httpOnly: true,
     });
-    // res.cookie("refreshToken", null, {
+    // res.cookie("memberRefreshToken", null, {
     //   httpOnly: true,
     //   sameSite: MODE === "development" ? "strict" : "none",
 
     //   path: "/",
     // });
 
-    // res.cookie("accessToken", null, {
+    // res.cookie("memberAccessToken", null, {
     //   sameSite: MODE === "development" ? "strict" : "none",
 
     //   path: "/",

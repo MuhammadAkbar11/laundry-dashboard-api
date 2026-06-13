@@ -178,7 +178,7 @@ class AuthService extends BaseService {
       { expiresIn: REFRESH_TOKEN_TTL }, // 7d
     );
 
-    res.cookie("refreshToken", refreshToken, {
+    res.cookie("userRefreshToken", refreshToken, {
       httpOnly: true,
       sameSite: MODE !== "development" ? "none" : "strict",
       path: "/",
@@ -187,7 +187,7 @@ class AuthService extends BaseService {
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
-    res.cookie("accessToken", accessToken, {
+    res.cookie("userAccessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
       httpOnly: true,
       sameSite: MODE !== "development" ? "none" : "strict",
@@ -200,13 +200,13 @@ class AuthService extends BaseService {
   }
 
   public resetSessionToken(res: express.Response) {
-    res.cookie("refreshToken", null, {
+    res.cookie("userRefreshToken", null, {
       httpOnly: true,
       sameSite: "none",
       path: "/",
     });
 
-    res.cookie("accessToken", null, {
+    res.cookie("userAccessToken", null, {
       sameSite: "none",
       path: "/",
       httpOnly: true,
