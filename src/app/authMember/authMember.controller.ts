@@ -10,8 +10,10 @@ import AuthMemberService from "./authMember.service";
 import {
   ForgotMemberPasswordPayload,
   ResetMemberPasswordPayload,
+  ResendVerificationPayload,
   SignInMemberPayload,
   SignUpMemberPayload,
+  VerifyEmailPayload,
 } from "./authMember.schema";
 
 @BindAllMethods
@@ -24,7 +26,7 @@ class AuthMemberController extends BaseController {
   public async postSignUpMember(
     req: Request<{}, {}, SignUpMemberPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     let avatar = DEFAULT_USER_AVATAR;
     this.logger.info("AUTH MEMBER CTRL");
@@ -34,11 +36,18 @@ class AuthMemberController extends BaseController {
         password: req.body.password,
         username: sanitizeText(req.body.username),
         avatar: avatar,
-        status: "ACTIVE",
+        status: "PENDING",
       });
+
+      if (!user) {
+        throw this.error("SERVER", 500, "Gagal mendaftarkan akun");
+      }
+
+      await this.service.sendVerificationEmail(user.memberId);
+
       return res.status(201).json({
         message:
-          "Selamat datang di layanan laundry kami. Terima kasih telah bergabung. Silakan login untuk mulai menggunakan layanan kami",
+          "Pendaftaran berhasil. Silakan periksa email Anda untuk verifikasi akun.",
         user: user,
       });
     } catch (error: any) {
@@ -49,15 +58,28 @@ class AuthMemberController extends BaseController {
   public async postSignInUser(
     req: Request<{}, {}, SignInMemberPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const member = await this.service.validateEmailAndPassword({
         email: req.body.email,
         password: req.body.password,
       });
+
       if (!member) {
-        throw this.error("AUTH", 401, "Email atau Kata Sandi Tidak Valid");
+        throw this.error(
+          "AUTH_VALIDATION",
+          401,
+          "Email atau Kata Sandi Tidak Valid",
+        );
+      }
+
+      if (member?.status === "PENDING") {
+        throw this.error(
+          "AUTH_VERIFICATION",
+          403,
+          "Akun belum diverifikasi. Silakan periksa email Anda untuk menyelesaikan verifikasi.",
+        );
       }
 
       const memberId = member.memberId as string;
@@ -93,7 +115,7 @@ class AuthMemberController extends BaseController {
         const sessionId = session.memberSessionId;
         const { refreshToken, accessToken } = this.service.setSessionToken(
           res,
-          { member: member, sessionId: sessionId }
+          { member: member, sessionId: sessionId },
         );
 
         // Reset failed-login counter for this email + IP on success.
@@ -153,7 +175,7 @@ class AuthMemberController extends BaseController {
   public async postSignOutMember(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const member = req.member;
@@ -189,7 +211,7 @@ class AuthMemberController extends BaseController {
   public async postForgotMemberPassword(
     req: Request<{}, {}, ForgotMemberPasswordPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       await this.service.forgotPassword(req.body.email);
@@ -205,12 +227,45 @@ class AuthMemberController extends BaseController {
   public async postResetMemberPassword(
     req: Request<{}, {}, ResetMemberPasswordPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       await this.service.resetPassword(req.body.token, req.body.password);
       return res.status(200).json({
-        message: "Kata sandi berhasil direset. Silakan login dengan kata sandi baru.",
+        message:
+          "Kata sandi berhasil direset. Silakan login dengan kata sandi baru.",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async postVerifyEmail(
+    req: Request<{}, {}, VerifyEmailPayload["body"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      await this.service.verifyEmail(req.body.token);
+      return res.status(200).json({
+        message:
+          "Email berhasil diverifikasi. Silakan login untuk melanjutkan.",
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async postResendVerification(
+    req: Request<{}, {}, ResendVerificationPayload["body"]>,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      await this.service.resendVerificationEmail(req.body.email);
+      return res.status(200).json({
+        message:
+          "Email verifikasi telah dikirim ulang. Silakan periksa kotak masuk Anda.",
       });
     } catch (error: any) {
       this.nextError(next, error);

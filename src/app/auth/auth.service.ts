@@ -23,16 +23,17 @@ import {
 import { dateUTC } from "../../configs/date.config";
 import EmailService from "../../services/email/email.service";
 
-export interface ISessionPayload
-  extends Omit<
-    Session,
-    "valid" | "createdAt" | "updatedAt" | "sessionId" | "expired"
-  > {
+export interface ISessionPayload extends Omit<
+  Session,
+  "valid" | "createdAt" | "updatedAt" | "sessionId" | "expired"
+> {
   valid?: boolean;
 }
 
-export interface IUserPayload
-  extends Omit<User, "userId" | "createdAt" | "updatedAt"> {}
+export interface IUserPayload extends Omit<
+  User,
+  "userId" | "createdAt" | "updatedAt"
+> {}
 
 @BindAllMethods
 class AuthService extends BaseService {
@@ -70,7 +71,7 @@ class AuthService extends BaseService {
         throw this.error(
           "DUPLICATE_ENTRY_ERR",
           409,
-          `Email ${input.email} telah terdaftar`
+          `Email ${input.email} telah terdaftar`,
         );
       }
 
@@ -103,7 +104,7 @@ class AuthService extends BaseService {
   }
 
   public async validateEmailAndPassword(
-    input: Pick<User, "email" | "password">
+    input: Pick<User, "email" | "password">,
   ) {
     try {
       const user = await this.prisma.user.findUnique({
@@ -152,17 +153,17 @@ class AuthService extends BaseService {
 
   public setSessionToken(
     res: express.Response,
-    { user, sessionId }: { user: Omit<User, "password">; sessionId: string }
+    { user, sessionId }: { user: Omit<User, "password">; sessionId: string },
   ): { accessToken: string; refreshToken: string } {
     const data = { ...user, session: sessionId };
     const accessToken = JWT.signJWT(
       data,
-      { expiresIn: ACCESS_TOKEN_TTL } // 15m
+      { expiresIn: ACCESS_TOKEN_TTL }, // 15m
     );
 
     const refreshToken = JWT.signJWT(
       data,
-      { expiresIn: REFRESH_TOKEN_TTL } // 7d
+      { expiresIn: REFRESH_TOKEN_TTL }, // 7d
     );
 
     res.cookie("refreshToken", refreshToken, {
@@ -230,7 +231,7 @@ class AuthService extends BaseService {
 
   public async updateSessionStatusById(
     sessionId: string,
-    isValid: boolean = true
+    isValid: boolean = true,
   ) {
     try {
       return this.prisma.session.update({
@@ -287,7 +288,7 @@ class AuthService extends BaseService {
         ...user,
         session: session.sessionId,
       },
-      { expiresIn: ACCESS_TOKEN_TTL } // 15m
+      { expiresIn: ACCESS_TOKEN_TTL }, // 15m
     );
 
     return accessToken;
@@ -303,7 +304,9 @@ class AuthService extends BaseService {
     if (!user) return;
 
     const { rawToken, tokenHash } = generateResetToken();
-    const expiresAt = dateUTC().add(RESET_TOKEN_EXPIRY_MINUTES, "minute").toISOString();
+    const expiresAt = dateUTC()
+      .add(RESET_TOKEN_EXPIRY_MINUTES, "minute")
+      .toISOString();
 
     await this.prisma.passwordResetToken.create({
       data: {
@@ -328,7 +331,7 @@ class AuthService extends BaseService {
           expiresInMinutes: RESET_TOKEN_EXPIRY_MINUTES,
         },
       },
-      { to: user.email }
+      { to: user.email },
     );
   }
 

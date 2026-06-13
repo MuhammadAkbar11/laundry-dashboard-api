@@ -25,6 +25,7 @@ import {
   REFRESH_TOKEN_MAX_AGE,
   REFRESH_TOKEN_TTL,
   RESET_TOKEN_EXPIRY_MINUTES,
+  VERIFICATION_TOKEN_EXPIRY_HOURS,
 } from "../../configs/vars.config";
 import { dateUTC } from "../../configs/date.config";
 import EmailService from "../../services/email/email.service";
@@ -41,8 +42,8 @@ class AuthMemberService extends BaseService {
   }
 
   public async signUpMember(
-    payload: Omit<Prisma.MemberCreateInput, "memberId">
-  ) {
+    payload: Omit<Prisma.MemberCreateInput, "memberId">,
+  ): Promise<Omit<Member, "password">> {
     try {
       const existEmail = await this.prisma.member.findUnique({
         where: {
@@ -53,7 +54,7 @@ class AuthMemberService extends BaseService {
         throw this.error(
           "DUPLICATE_ENTRY_ERR",
           409,
-          `Email ${payload.email} telah terdaftar`
+          `Email ${payload.email} telah terdaftar`,
         );
       }
 
@@ -104,7 +105,7 @@ class AuthMemberService extends BaseService {
   }
 
   public async validateEmailAndPassword(
-    input: Pick<Member, "email" | "password">
+    input: Pick<Member, "email" | "password">,
   ) {
     try {
       const member = await this.prisma.member.findUnique({
@@ -134,7 +135,7 @@ class AuthMemberService extends BaseService {
       "memberSessionId" | "expired" | "member"
     > & {
       memberId: string;
-    }
+    },
   ) {
     const { memberId, userAgent, valid, ipAddress, deviceType } = input;
     try {
@@ -185,17 +186,17 @@ class AuthMemberService extends BaseService {
     {
       member,
       sessionId,
-    }: { member: Omit<Member, "password">; sessionId: string }
+    }: { member: Omit<Member, "password">; sessionId: string },
   ): { accessToken: string; refreshToken: string } {
     const data = { ...member, session: sessionId };
     const accessToken = JWT.signJWT(
       data,
-      { expiresIn: ACCESS_TOKEN_TTL } // 15m
+      { expiresIn: ACCESS_TOKEN_TTL }, // 15m
     );
 
     const refreshToken = JWT.signJWT(
       data,
-      { expiresIn: REFRESH_TOKEN_TTL } // 7d
+      { expiresIn: REFRESH_TOKEN_TTL }, // 7d
     );
 
     // res.cookie("refreshToken", refreshToken, {
@@ -214,7 +215,7 @@ class AuthMemberService extends BaseService {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      sameSite: MODE !== "development" ? "none": "strict",
+      sameSite: MODE !== "development" ? "none" : "strict",
       path: "/",
       secure: MODE !== "development",
       domain: MODE !== "development" ? CLIENT_DOMAIN : undefined,
@@ -224,7 +225,7 @@ class AuthMemberService extends BaseService {
     res.cookie("accessToken", accessToken, {
       maxAge: ACCESS_TOKEN_MAX_AGE, // 5 minutes
       httpOnly: true,
-      sameSite: MODE !== "development" ? "none": "strict",
+      sameSite: MODE !== "development" ? "none" : "strict",
       path: "/",
       secure: MODE !== "development",
       domain: MODE !== "development" ? CLIENT_DOMAIN : undefined,
@@ -290,7 +291,7 @@ class AuthMemberService extends BaseService {
 
   public async updateMemberSessionStatusById(
     memberSessionId: string,
-    isValid: boolean = true
+    isValid: boolean = true,
   ) {
     try {
       return this.prisma.memberSession.update({
@@ -347,10 +348,123 @@ class AuthMemberService extends BaseService {
         ...member,
         session: session.memberSessionId,
       },
-      { expiresIn: ACCESS_TOKEN_TTL } // 15m
+      { expiresIn: ACCESS_TOKEN_TTL }, // 15m
     );
 
     return accessToken;
+  }
+
+  /**
+   * Create a verification token, store its hash, and send a
+   * verification email to the member. Used during registration
+   * and when resending verification.
+   */
+  async sendVerificationEmail(memberId: string): Promise<void> {
+    const member = await this.prisma.member.findUnique({
+      where: { memberId },
+    });
+    if (!member) return;
+
+    const { rawToken, tokenHash } = generateResetToken();
+    const expiresAt = dateUTC()
+      .add(VERIFICATION_TOKEN_EXPIRY_HOURS, "hour")
+      .toISOString();
+
+    await this.prisma.emailVerificationToken.create({
+      data: {
+        tokenHash,
+        memberId: member.memberId,
+        expiresAt,
+      },
+    });
+
+    const clientUrl =
+      MODE !== "development" ? CLIENT_DOMAIN : ALLOWED_ORIGINS.split("|")[0];
+    const verifyUrl = `${clientUrl}/verify-email?token=${rawToken}`;
+
+    const emailService = new EmailService();
+    await emailService.sendTemplated(
+      "auto",
+      {
+        id: "verify-email",
+        options: {
+          memberName: member.username,
+          verifyUrl,
+          expiresInHours: VERIFICATION_TOKEN_EXPIRY_HOURS,
+        },
+      },
+      { to: member.email },
+    );
+  }
+
+  /**
+   * Validate a verification token, activate the member account,
+   * and mark the token as used. Throws if invalid, expired, or
+   * already used.
+   */
+  async verifyEmail(token: string): Promise<void> {
+    const tokenHash = hashResetToken(token);
+
+    const verificationToken =
+      await this.prisma.emailVerificationToken.findUnique({
+        where: { tokenHash },
+      });
+
+    if (!verificationToken) {
+      throw this.error("AUTH", 400, "Token verifikasi tidak valid");
+    }
+
+    if (verificationToken.usedAt) {
+      throw this.error("AUTH", 400, "Token verifikasi sudah digunakan");
+    }
+
+    if (new Date(verificationToken.expiresAt) < new Date()) {
+      throw this.error("AUTH", 400, "Token verifikasi sudah kedaluwarsa");
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.member.update({
+        where: { memberId: verificationToken.memberId },
+        data: { status: "ACTIVE" },
+      }),
+      this.prisma.emailVerificationToken.update({
+        where: { tokenHash },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+  }
+
+  /**
+   * Resend a verification email. Invalidates any existing active
+   * tokens for the member before creating a new one.
+   */
+  async resendVerificationEmail(email: string): Promise<void> {
+    const member = await this.prisma.member.findUnique({ where: { email } });
+    if (!member) {
+      throw this.error("AUTH", 404, "Email tidak terdaftar");
+    }
+
+    if (member.status !== "PENDING") {
+      throw this.error(
+        "AUTH",
+        400,
+        "Akun sudah aktif atau tidak memerlukan verifikasi",
+      );
+    }
+
+    // Soft-delete old active tokens by marking them used so they
+    // cannot be replayed.
+    await this.prisma.emailVerificationToken.updateMany({
+      where: {
+        memberId: member.memberId,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    await this.sendVerificationEmail(member.memberId);
   }
 
   /**
@@ -363,7 +477,9 @@ class AuthMemberService extends BaseService {
     if (!member) return;
 
     const { rawToken, tokenHash } = generateResetToken();
-    const expiresAt = dateUTC().add(RESET_TOKEN_EXPIRY_MINUTES, "minute").toISOString();
+    const expiresAt = dateUTC()
+      .add(RESET_TOKEN_EXPIRY_MINUTES, "minute")
+      .toISOString();
 
     await this.prisma.passwordResetToken.create({
       data: {
@@ -388,7 +504,7 @@ class AuthMemberService extends BaseService {
           expiresInMinutes: RESET_TOKEN_EXPIRY_MINUTES,
         },
       },
-      { to: member.email }
+      { to: member.email },
     );
   }
 

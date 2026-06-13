@@ -54,6 +54,20 @@ export const resetMemberPasswordSchema = z.object({
   }),
 });
 
+export const verifyEmailSchema = z.object({
+  body: z.object({
+    token: z.string({ required_error: "Token is required" }).min(1),
+  }),
+});
+
+export const resendVerificationSchema = z.object({
+  body: z.object({
+    email: z
+      .string({ required_error: "Email is required" })
+      .email("Not a valid Email"),
+  }),
+});
+
 export type SignInMemberPayload = z.TypeOf<typeof signInMemberSchema>;
 export type SignUpMemberPayload = Omit<
   z.TypeOf<typeof signUpMemberSchema>,
@@ -65,3 +79,5 @@ export type ForgotMemberPasswordPayload = z.TypeOf<
 export type ResetMemberPasswordPayload = z.TypeOf<
   typeof resetMemberPasswordSchema
 >;
+export type VerifyEmailPayload = z.TypeOf<typeof verifyEmailSchema>;
+export type ResendVerificationPayload = z.TypeOf<typeof resendVerificationSchema>;

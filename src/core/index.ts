@@ -19,7 +19,7 @@ export abstract class BaseRouter<T> {
 
   constructor(
     protected Controller: new () => T,
-    private readonly app: Application
+    private readonly app: Application,
   ) {
     if (typeof Controller !== "function") {
       throw new Error("Controller must be a constructor function");
@@ -74,7 +74,7 @@ export abstract class BaseController {
     message: string,
     errors: ErrorData = {
       isOperational: true,
-    }
+    },
   ) {
     return new BaseError(name, statusCode, message, errors);
   }
@@ -100,7 +100,7 @@ export class BaseService {
   }
 
   protected async createPrimaryKeyValue(
-    prismaTrx?: Prisma.TransactionClient
+    prismaTrx?: Prisma.TransactionClient,
   ): Promise<string> {
     try {
       if (this.table === undefined) {
@@ -110,7 +110,7 @@ export class BaseService {
           "Failed to create a primary key value because the 'table' property has not been initialised. please add the uninitialised 'table' property to the constructor.",
           {
             isOperational: false,
-          }
+          },
         );
       }
 
@@ -133,12 +133,12 @@ export class BaseService {
     message: string,
     errors: ErrorData = {
       isOperational: true,
-    }
+    },
   ) {
     return new BaseError(name, statusCode, message, errors);
   }
 
-  protected throwError(error: any) {
+  protected throwError(error: any): never {
     const name = error?.name || "EXCEPTION";
     const statusCode = error?.statusCode || this.methodStatus.INTERNAL_SERVER;
     const msg = error?.message || "Something went wrong on Service";

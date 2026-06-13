@@ -30,7 +30,7 @@ class AuthController extends BaseController {
   public async postSignUpUser(
     req: Request<{}, {}, SignUpUserPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const fileimgData = req.fileimg?.data;
     let avatar = DEFAULT_USER_AVATAR;
@@ -66,13 +66,14 @@ class AuthController extends BaseController {
   public async postSignInUser(
     req: Request<{}, {}, SignInUserPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const user = await this.service.validateEmailAndPassword({
         email: req.body.email,
         password: req.body.password,
       });
+
       if (!user) {
         throw this.error("AUTH", 401, "Email atau Kata Sandi Tidak Valid");
       }
@@ -110,7 +111,7 @@ class AuthController extends BaseController {
         const sessionId = session.sessionId;
         const { refreshToken, accessToken } = this.service.setSessionToken(
           res,
-          { user, sessionId: sessionId }
+          { user, sessionId: sessionId },
         );
 
         // Reset failed-login counter for this email + IP on success.
@@ -172,7 +173,7 @@ class AuthController extends BaseController {
   public async postSignOutUser(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const user = req.user;
@@ -181,7 +182,7 @@ class AuthController extends BaseController {
         throw this.error(
           "AUTH",
           401,
-          "Logout gagal! silahkan di coba lagi nanti"
+          "Logout gagal! silahkan di coba lagi nanti",
         );
       }
 
@@ -195,7 +196,7 @@ class AuthController extends BaseController {
         throw this.error(
           "AUTH",
           401,
-          "Logout gagal, silahkan dicoba lagi nanti!"
+          "Logout gagal, silahkan dicoba lagi nanti!",
         );
       }
 
@@ -216,7 +217,7 @@ class AuthController extends BaseController {
   public async postForgotPassword(
     req: Request<{}, {}, ForgotPasswordPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       await this.service.forgotPassword(req.body.email);
@@ -232,12 +233,13 @@ class AuthController extends BaseController {
   public async postResetPassword(
     req: Request<{}, {}, ResetPasswordPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       await this.service.resetPassword(req.body.token, req.body.password);
       return res.status(200).json({
-        message: "Kata sandi berhasil direset. Silakan login dengan kata sandi baru.",
+        message:
+          "Kata sandi berhasil direset. Silakan login dengan kata sandi baru.",
       });
     } catch (error: any) {
       this.nextError(next, error);

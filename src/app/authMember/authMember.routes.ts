@@ -10,8 +10,10 @@ import AuthMemberController from "./authMember.controller";
 import {
   forgotMemberPasswordSchema,
   resetMemberPasswordSchema,
+  resendVerificationSchema,
   signInMemberSchema,
   signUpMemberSchema,
+  verifyEmailSchema,
 } from "./authMember.schema";
 import {
   deserializeMember,
@@ -28,36 +30,46 @@ class AuthMemberRouter extends BaseRouter<AuthMemberController> {
     this.router.post(
       "/member/signup",
       [validateResource(signUpMemberSchema)],
-      this.controller.postSignUpMember
+      this.controller.postSignUpMember,
     );
     this.router.post(
       "/member/signin",
       authRateLimit,
-      attachAuthRateLimitContext,
+      // attachAuthRateLimitContext,
       [validateResource(signInMemberSchema)],
-      this.controller.postSignInUser
+      this.controller.postSignInUser,
     );
     this.router.get(
       "/member/session",
       deserializeMember,
       requiredMember,
-      this.controller.getSession
+      this.controller.getSession,
     );
     this.router.post(
       "/member/signout",
       deserializeMember,
       requiredMember,
-      this.controller.postSignOutMember
+      this.controller.postSignOutMember,
     );
     this.router.post(
       "/member/forgot-password",
       [validateResource(forgotMemberPasswordSchema)],
-      this.controller.postForgotMemberPassword
+      this.controller.postForgotMemberPassword,
     );
     this.router.post(
       "/member/reset-password",
       [validateResource(resetMemberPasswordSchema)],
-      this.controller.postResetMemberPassword
+      this.controller.postResetMemberPassword,
+    );
+    this.router.post(
+      "/member/verify-email",
+      [validateResource(verifyEmailSchema)],
+      this.controller.postVerifyEmail,
+    );
+    this.router.post(
+      "/member/resend-verification",
+      [validateResource(resendVerificationSchema)],
+      this.controller.postResendVerification,
     );
   }
 }
