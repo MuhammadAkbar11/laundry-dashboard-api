@@ -10,6 +10,7 @@ import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import _ from "lodash";
 import { dateIndoWIB } from "../../configs/date.config";
+import NotificationService from "../../services/notification/notification.service";
 
 export interface ILaundryQueueInput
   extends Omit<Prisma.LaundryQueueCreateInput, "laundryQueueId" | "customer"> {
@@ -18,6 +19,8 @@ export interface ILaundryQueueInput
 
 @BindAllMethods
 class LaundryQueueService extends BaseService {
+  private notificationService = new NotificationService();
+
   constructor() {
     super();
     this.table = {
@@ -25,6 +28,32 @@ class LaundryQueueService extends BaseService {
       primaryKey: "laundry_queue_id",
       lengthPKValue: 7,
     };
+  }
+
+  /**
+   * Map LaundryQueueStatus to notification type code.
+   */
+  private statusToNotificationType(status: string): string | null {
+    const map: Record<string, string> = {
+      ONHOLD: "LAUNDRY_ON_HOLD",
+      WASHED: "LAUNDRY_WASHED",
+      FINISHED: "LAUNDRY_FINISHED",
+      CANCELED: "LAUNDRY_CANCELED",
+    };
+    return map[status] || null;
+  }
+
+  /**
+   * Resolve memberId from customerId via Customer → Member relation.
+   */
+  private async getMemberIdFromCustomerId(
+    customerId: string,
+  ): Promise<string | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { customerId },
+      include: { Member: true },
+    });
+    return customer?.Member?.memberId || null;
   }
 
   public async getAll(
@@ -146,6 +175,34 @@ class LaundryQueueService extends BaseService {
         };
       });
 
+      // Notify member and admins after successful creation.
+      if (result) {
+        const { laundryQueue } = result;
+        const orderNumber = laundryQueue.laundryQueueId;
+
+        const memberId = await this.getMemberIdFromCustomerId(
+          laundryQueue.customerId,
+        );
+        if (memberId) {
+          await this.notificationService.notifyMember(
+            memberId,
+            "LAUNDRY_CREATED",
+            { orderNumber },
+          );
+        }
+
+        const customer = await this.prisma.customer.findUnique({
+          where: { customerId: laundryQueue.customerId },
+        });
+        await this.notificationService.notifyAllUsers(
+          "NEW_LAUNDRY_ORDER",
+          {
+            orderNumber,
+            customerName: customer?.name || "Pelanggan",
+          },
+        );
+      }
+
       return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] createLaundryQueue");
@@ -165,7 +222,7 @@ class LaundryQueueService extends BaseService {
     | undefined
   > {
     try {
-      const result = this.prisma.$transaction(async tx => {
+      const result = await this.prisma.$transaction(async tx => {
         const updatedLaundryQueue = await tx.laundryQueue.update({
           where: { laundryQueueId: id },
           data: {
@@ -186,6 +243,18 @@ class LaundryQueueService extends BaseService {
         });
         return { laundryQueue: updatedLaundryQueue, customer: updateCustomer };
       });
+
+      // Notify member about delivery.
+      if (result) {
+        const memberId = await this.getMemberIdFromCustomerId(customerId);
+        if (memberId) {
+          await this.notificationService.notifyMember(
+            memberId,
+            "LAUNDRY_DELIVERED",
+            { orderNumber: id },
+          );
+        }
+      }
 
       return result;
     } catch (error) {
@@ -236,6 +305,24 @@ class LaundryQueueService extends BaseService {
 
         return { laundryQueue, laundryRoom: createdLaundryRoom };
       });
+
+      // Notify member based on new status.
+      if (result) {
+        const typeCode = this.statusToNotificationType(status);
+        if (typeCode) {
+          const memberId = await this.getMemberIdFromCustomerId(
+            result.laundryQueue.customerId,
+          );
+          if (memberId) {
+            await this.notificationService.notifyMember(
+              memberId,
+              typeCode,
+              { orderNumber: laundryQueueId },
+            );
+          }
+        }
+      }
+
       return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] updateLaundryQueueStatus");

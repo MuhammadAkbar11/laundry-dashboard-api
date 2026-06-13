@@ -29,9 +29,12 @@ import {
 } from "../../configs/vars.config";
 import { dateUTC } from "../../configs/date.config";
 import EmailService from "../../services/email/email.service";
+import NotificationService from "../../services/notification/notification.service";
 
 @BindAllMethods
 class AuthMemberService extends BaseService {
+  private notificationService = new NotificationService();
+
   constructor() {
     super();
     this.table = {
@@ -97,6 +100,19 @@ class AuthMemberService extends BaseService {
           data: newMember,
         });
       });
+
+      // Welcome notification for the new member.
+      await this.notificationService.notifyMember(
+        member.memberId,
+        "MEMBER_REGISTERED",
+        { memberName: member.username },
+      );
+
+      // Notify admins about new member registration.
+      await this.notificationService.notifyAllUsers(
+        "NEW_MEMBER",
+        { memberName: member.username },
+      );
 
       return omit(member, "password");
     } catch (error: any) {
@@ -432,6 +448,13 @@ class AuthMemberService extends BaseService {
         data: { usedAt: new Date() },
       }),
     ]);
+
+    // Notify member about successful email verification.
+    await this.notificationService.notifyMember(
+      verificationToken.memberId,
+      "EMAIL_VERIFIED",
+      {},
+    );
   }
 
   /**
@@ -547,6 +570,13 @@ class AuthMemberService extends BaseService {
         data: { usedAt: new Date() },
       }),
     ]);
+
+    // Notify member about successful password reset.
+    await this.notificationService.notifyMember(
+      resetToken.memberId,
+      "PASSWORD_RESET",
+      {},
+    );
   }
 }
 

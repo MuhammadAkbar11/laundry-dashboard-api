@@ -35,7 +35,7 @@ class AuthMemberRouter extends BaseRouter<AuthMemberController> {
     this.router.post(
       "/member/signin",
       authRateLimit,
-      // attachAuthRateLimitContext,
+      attachAuthRateLimitContext,
       [validateResource(signInMemberSchema)],
       this.controller.postSignInUser,
     );

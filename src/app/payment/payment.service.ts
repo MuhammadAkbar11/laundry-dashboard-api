@@ -2,12 +2,15 @@ import { Payment, Prisma } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { dateIndoWIB } from "../../configs/date.config";
+import NotificationService from "../../services/notification/notification.service";
 
 // export interface IPaymentInput
 //   extends Omit<Payment, "createdAt" | "updatedAt" | "laundries"> {}
 
 @BindAllMethods
 class PaymentService extends BaseService {
+  private notificationService = new NotificationService();
+
   constructor() {
     super();
     this.table = {
@@ -17,8 +20,21 @@ class PaymentService extends BaseService {
     };
   }
 
+  /**
+   * Resolve memberId from customerId via Customer → Member relation.
+   */
+  private async getMemberIdFromCustomerId(
+    customerId: string,
+  ): Promise<string | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { customerId },
+      include: { Member: true },
+    });
+    return customer?.Member?.memberId || null;
+  }
+
   public async getAll(
-    options?: Prisma.PaymentFindManyArgs
+    options?: Prisma.PaymentFindManyArgs,
   ): Promise<Payment[] | void> {
     try {
       const data = await this.prisma.payment.findMany(options);
@@ -75,7 +91,7 @@ class PaymentService extends BaseService {
       "paid" | "laundryQueueId" | "paymentMethod" | "userId"
     > & {
       code: string;
-    }
+    },
   ) {
     try {
       const result = await this.prisma.$transaction(async tx => {
@@ -95,7 +111,7 @@ class PaymentService extends BaseService {
 
         const roomTotalPrice = Number(laundryQueue?.laundryRoom?.total);
         const customerDiscount = Number(
-          laundryQueue?.customer?.customerLevel?.discount
+          laundryQueue?.customer?.customerLevel?.discount,
         );
         let discount = (roomTotalPrice * customerDiscount) / 100;
 
@@ -187,6 +203,27 @@ class PaymentService extends BaseService {
         };
       });
 
+      // Notify member and admins after payment completion.
+      if (result) {
+        const orderNumber = result.laundryQueue.laundryQueueId;
+        // const totalPrice = result.payment.totalPrice;
+
+        const memberId = await this.getMemberIdFromCustomerId(
+          result.laundryQueue.customerId,
+        );
+        if (memberId) {
+          await this.notificationService.notifyMember(
+            memberId,
+            "PAYMENT_COMPLETED",
+            { orderNumber },
+          );
+        }
+
+        await this.notificationService.notifyAllUsers("NEW_PAYMENT", {
+          orderNumber,
+        });
+      }
+
       return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] createPayment");
@@ -222,7 +259,7 @@ class PaymentService extends BaseService {
 
         const roomTotalPrice = Number(laundryQueue?.laundryRoom?.total);
         const customerDiscount = Number(
-          laundryQueue?.customer?.customerLevel?.discount
+          laundryQueue?.customer?.customerLevel?.discount,
         );
         let discount = (roomTotalPrice * customerDiscount) / 100;
 
@@ -295,6 +332,21 @@ class PaymentService extends BaseService {
           cashflow: createdCashflow,
         };
       });
+
+      // Notify member after payment is accepted.
+      if (result) {
+        const orderNumber = result.laundryQueue.laundryQueueId;
+        const memberId = await this.getMemberIdFromCustomerId(
+          result.laundryQueue.customerId,
+        );
+        if (memberId) {
+          await this.notificationService.notifyMember(
+            memberId,
+            "PAYMENT_COMPLETED",
+            { orderNumber },
+          );
+        }
+      }
 
       return result;
     } catch (error) {

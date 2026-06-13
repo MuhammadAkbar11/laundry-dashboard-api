@@ -361,6 +361,7 @@ class MemberController extends BaseController {
         note: sanitizeText(req.body.note),
         customerId: customer?.customerId as string,
         services: laundryServices,
+        memberId: req.member?.memberId as string,
       });
       return res.status(201).json({
         message: "Order berhasil dan sedang diproses",
@@ -869,6 +870,7 @@ class MemberController extends BaseController {
         laundryQueueId: laundryQueue?.laundryQueueId,
         proof,
         paymentMethod: req.body.paymentMethod,
+        memberId: req.member?.memberId as string,
       });
 
       res.status(200).json({

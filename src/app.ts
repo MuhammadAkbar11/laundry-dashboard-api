@@ -63,17 +63,17 @@ class App {
     if (!process.env.ALLOWED_ORIGINS) {
       logger.warn(
         "[SERVER] ALLOWED_ORIGINS env var is not set — falling back to default (http://localhost:3379). " +
-          "Set ALLOWED_ORIGINS in your .env file to match your deployment."
+          "Set ALLOWED_ORIGINS in your .env file to match your deployment.",
       );
     }
 
     this.server.use(
       cors({
         origin: origins,
-        methods: ["GET", "POST", "PUT", "DELETE"],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
         exposedHeaders: ["X-Correlation-ID"],
         credentials: true,
-      })
+      }),
     );
 
     // Helmet: standard HTTP security headers. Registered globally so every
@@ -86,7 +86,7 @@ class App {
       helmet({
         contentSecurityPolicy: false,
         crossOriginResourcePolicy: { policy: "cross-origin" },
-      })
+      }),
     );
 
     // Correlation ID: generates a UUID per request, or reuses an incoming
@@ -124,23 +124,23 @@ class App {
     this.server.use("/setting", new SettingRouter(this.server).getRouter());
     this.server.use(
       "/laundry/service",
-      new LaundryServiceRouter(this.server).getRouter()
+      new LaundryServiceRouter(this.server).getRouter(),
     );
     this.server.use(
       "/laundry/queue",
-      new LaundryQueueRouter(this.server).getRouter()
+      new LaundryQueueRouter(this.server).getRouter(),
     );
     this.server.use(
       "/laundry/item",
-      new LaundryItemRouter(this.server).getRouter()
+      new LaundryItemRouter(this.server).getRouter(),
     );
     this.server.use(
       "/laundry/room",
-      new LaundryRoomRouter(this.server).getRouter()
+      new LaundryRoomRouter(this.server).getRouter(),
     );
     this.server.use(
       "/level/customer",
-      new CustomerLevelRouter(this.server).getRouter()
+      new CustomerLevelRouter(this.server).getRouter(),
     );
     this.server.use("/expenses", new ExpensesRouter(this.server).getRouter());
     this.server.use("/email", new EmailRouter(this.server).getRouter());

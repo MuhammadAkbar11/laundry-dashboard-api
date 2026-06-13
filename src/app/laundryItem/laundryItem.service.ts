@@ -9,6 +9,7 @@ import {
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import _ from "lodash";
+import NotificationService from "../../services/notification/notification.service";
 
 interface ILaundryItemInput extends Omit<
   LaundryItem,
@@ -17,6 +18,8 @@ interface ILaundryItemInput extends Omit<
 
 @BindAllMethods
 class LaundryItemService extends BaseService {
+  private notificationService = new NotificationService();
+
   constructor() {
     super();
     this.table = {
@@ -24,6 +27,19 @@ class LaundryItemService extends BaseService {
       primaryKey: "laundry_id",
       lengthPKValue: 8,
     };
+  }
+
+  /**
+   * Resolve memberId from customerId via Customer → Member relation.
+   */
+  private async getMemberIdFromCustomerId(
+    customerId: string,
+  ): Promise<string | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { customerId },
+      include: { Member: true },
+    });
+    return customer?.Member?.memberId || null;
   }
 
   public async getAll(
@@ -110,15 +126,6 @@ class LaundryItemService extends BaseService {
           data: newLaundryItem,
         });
 
-        // const updatedlaundryQueue = await tx.laundryQueue.update({
-        //   where: {
-        //     laundryQueueId: createdLaundryItem.laundryQueueId,
-        //   },
-        //   data: {
-        //     status: "WASHED",
-        //   },
-        // });
-
         const laundryRoom = await tx.laundryRoom.findUnique({
           where: { laundryQueueId: createdLaundryItem.laundryQueueId },
         });
@@ -136,10 +143,28 @@ class LaundryItemService extends BaseService {
         return {
           laundryItem: createdLaundryItem,
           laundryRoom: updatedlaundryRoom,
-          // laundryQueue: updatedlaundryQueue,
           historyService: createdHistoryService,
         };
       });
+
+      // Notify the member that the laundry has been washed.
+      if (result) {
+        const queue = await this.prisma.laundryQueue.findUnique({
+          where: { laundryQueueId: result.laundryItem.laundryQueueId },
+        });
+        if (queue) {
+          const memberId = await this.getMemberIdFromCustomerId(
+            queue.customerId,
+          );
+          if (memberId) {
+            await this.notificationService.notifyMember(
+              memberId,
+              "LAUNDRY_WASHED",
+              { orderNumber: result.laundryItem.laundryQueueId },
+            );
+          }
+        }
+      }
 
       return result;
     } catch (error) {
@@ -207,6 +232,25 @@ class LaundryItemService extends BaseService {
         };
       });
 
+      // Notify the member that the laundry has been washed.
+      if (result) {
+        const queue = await this.prisma.laundryQueue.findUnique({
+          where: { laundryQueueId: result.laundryItem.laundryQueueId },
+        });
+        if (queue) {
+          const memberId = await this.getMemberIdFromCustomerId(
+            queue.customerId,
+          );
+          if (memberId) {
+            await this.notificationService.notifyMember(
+              memberId,
+              "LAUNDRY_WASHED",
+              { orderNumber: result.laundryItem.laundryQueueId },
+            );
+          }
+        }
+      }
+
       return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] updateLaundryItem");
@@ -253,7 +297,7 @@ class LaundryItemService extends BaseService {
           },
         });
 
-        const updatedlaundryQueue = await tx.laundryQueue.update({
+        const updatedLaundryQueue = await tx.laundryQueue.update({
           where: {
             laundryQueueId: deleteLaundryItem.laundryQueueId,
           },
@@ -266,9 +310,30 @@ class LaundryItemService extends BaseService {
           laundryItem: deleteLaundryItem,
           laundryRoom: updatedlaundryRoom,
           historyService: deletedHistoryService,
-          laundryQueue: updatedlaundryQueue,
+          laundryQueue: updatedLaundryQueue,
         };
       });
+
+      // Notify the member about the resulting queue status.
+      if (result) {
+        const status = result.laundryQueue.status;
+        const typeCode =
+          status === "ONHOLD"
+            ? "LAUNDRY_ON_HOLD"
+            : status === "WASHED"
+              ? "LAUNDRY_WASHED"
+              : null;
+        if (typeCode) {
+          const memberId = await this.getMemberIdFromCustomerId(
+            result.laundryQueue.customerId,
+          );
+          if (memberId) {
+            await this.notificationService.notifyMember(memberId, typeCode, {
+              orderNumber: result.laundryQueue.laundryQueueId,
+            });
+          }
+        }
+      }
 
       return result;
     } catch (error) {

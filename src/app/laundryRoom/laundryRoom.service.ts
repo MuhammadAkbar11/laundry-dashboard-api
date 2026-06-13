@@ -2,12 +2,15 @@ import { LaundryQueue, LaundryRoom, Prisma } from "@prisma/client";
 import { BaseService } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { dateIndoWIB } from "../../configs/date.config";
+import NotificationService from "../../services/notification/notification.service";
 
 // export interface ILaundryRoomInput
 //   extends Omit<LaundryRoom, "createdAt" | "updatedAt" | "laundries"> {}
 
 @BindAllMethods
 class LaundryRoomService extends BaseService {
+  private notificationService = new NotificationService();
+
   constructor() {
     super();
     this.table = {
@@ -15,6 +18,19 @@ class LaundryRoomService extends BaseService {
       primaryKey: "laundry_room_id",
       lengthPKValue: 21,
     };
+  }
+
+  /**
+   * Resolve memberId from customerId via Customer → Member relation.
+   */
+  private async getMemberIdFromCustomerId(
+    customerId: string,
+  ): Promise<string | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { customerId },
+      include: { Member: true },
+    });
+    return customer?.Member?.memberId || null;
   }
 
   public async getAll(
@@ -76,6 +92,20 @@ class LaundryRoomService extends BaseService {
           laundryQueue: updatedlaundryQueue,
         };
       });
+
+      // Notify the member that the laundry order has been finished.
+      if (result) {
+        const memberId = await this.getMemberIdFromCustomerId(
+          result.laundryQueue.customerId,
+        );
+        if (memberId) {
+          await this.notificationService.notifyMember(
+            memberId,
+            "LAUNDRY_FINISHED",
+            { orderNumber: laundryQueueId },
+          );
+        }
+      }
 
       return result;
     } catch (error) {

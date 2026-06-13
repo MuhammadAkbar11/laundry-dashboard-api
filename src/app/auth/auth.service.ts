@@ -22,6 +22,7 @@ import {
 } from "../../configs/vars.config";
 import { dateUTC } from "../../configs/date.config";
 import EmailService from "../../services/email/email.service";
+import NotificationService from "../../services/notification/notification.service";
 
 export interface ISessionPayload extends Omit<
   Session,
@@ -37,6 +38,8 @@ export interface IUserPayload extends Omit<
 
 @BindAllMethods
 class AuthService extends BaseService {
+  private notificationService = new NotificationService();
+
   constructor() {
     super();
   }
@@ -96,6 +99,15 @@ class AuthService extends BaseService {
           data: newUser,
         });
       });
+
+      // Notify all admin users about the new user registration.
+      await this.notificationService.notifyAllUsers(
+        "NEW_USER",
+        {
+          userName: user.name,
+          role: user.role,
+        },
+      );
 
       return omit(user, "password");
     } catch (error: any) {

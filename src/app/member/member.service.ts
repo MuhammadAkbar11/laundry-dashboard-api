@@ -14,9 +14,12 @@ import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseService } from "../../core";
 import { dateIndoWIB } from "../../configs/date.config";
 import { MemberOrderPayload, PostPaymentPayload } from "./member.schema";
+import NotificationService from "../../services/notification/notification.service";
 
 @BindAllMethods
 class MemberService extends BaseService {
+  private notificationService = new NotificationService();
+
   constructor() {
     super();
     this.table = {
@@ -27,7 +30,7 @@ class MemberService extends BaseService {
   }
 
   public async getAll(
-    options?: Prisma.MemberFindManyArgs
+    options?: Prisma.MemberFindManyArgs,
   ): Promise<Member[] | void> {
     try {
       const result = await this.prisma.member.findMany(options);
@@ -50,7 +53,7 @@ class MemberService extends BaseService {
 
   public async getById(
     id: string,
-    options?: Omit<Prisma.MemberFindUniqueArgs, "where">
+    options?: Omit<Prisma.MemberFindUniqueArgs, "where">,
   ): Promise<Member | void | null> {
     try {
       const result = await this.prisma.member.findUnique({
@@ -66,7 +69,7 @@ class MemberService extends BaseService {
 
   public async update(
     id: string,
-    data: Omit<Prisma.MemberUpdateInput, "memberId">
+    data: Omit<Prisma.MemberUpdateInput, "memberId">,
   ): Promise<Member | undefined> {
     try {
       const result = await this.prisma.member.update({
@@ -96,7 +99,8 @@ class MemberService extends BaseService {
     payload: Omit<MemberOrderPayload["body"], "services"> & {
       services: Service[];
       customerId: string;
-    }
+      memberId: string;
+    },
   ) {
     try {
       const result = await this.prisma.$transaction(async tx => {
@@ -164,6 +168,21 @@ class MemberService extends BaseService {
         };
       });
 
+      // Notify member and admins after order creation.
+      if (result) {
+        const orderNumber = result.laundryQueue.laundryQueueId;
+        await this.notificationService.notifyMember(
+          payload.memberId,
+          "LAUNDRY_CREATED",
+          { orderNumber },
+        );
+
+        await this.notificationService.notifyAllUsers("NEW_LAUNDRY_ORDER", {
+          orderNumber,
+          customerName: payload.memberId,
+        });
+      }
+
       return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] createLaundryQueue");
@@ -172,7 +191,10 @@ class MemberService extends BaseService {
   }
 
   public async createPayment(
-    payload: PostPaymentPayload["body"] & { proof?: string | null }
+    payload: PostPaymentPayload["body"] & {
+      proof?: string | null;
+      memberId: string;
+    },
   ) {
     try {
       const result = await this.prisma.$transaction(async tx => {
@@ -223,6 +245,28 @@ class MemberService extends BaseService {
         };
       });
 
+      // Notify member and admins about new payment submission.
+      if (result) {
+        const orderNumber = result.laundryQueue.laundryQueueId;
+        const isCash = payload.paymentMethod === "CASH";
+
+        // For cash payments the admin records the payment directly
+        // via service.create which fires PAYMENT_COMPLETED. Skip the
+        // "processed" notification here so the member only sees the
+        // final completed state once the cash is recorded.
+        if (!isCash) {
+          await this.notificationService.notifyMember(
+            payload.memberId,
+            "PAYMENT_PROCESSED",
+            { orderNumber },
+          );
+        }
+
+        await this.notificationService.notifyAllUsers("NEW_PAYMENT", {
+          orderNumber,
+        });
+      }
+
       return result;
     } catch (error) {
       this.logger.error("[EXCEPTION] createPayment");
@@ -231,7 +275,7 @@ class MemberService extends BaseService {
   }
 
   public async getLaundryQueueOrders(
-    options: Prisma.LaundryQueueFindManyArgs
+    options: Prisma.LaundryQueueFindManyArgs,
   ): Promise<LaundryQueue[] | void | null> {
     try {
       const result = await this.prisma.laundryQueue.findMany({
@@ -254,7 +298,7 @@ class MemberService extends BaseService {
   }
 
   public async getLaundryRoomById(
-    laundryQueueId: string
+    laundryQueueId: string,
   ): Promise<LaundryRoom | void | null> {
     try {
       const result = await this.prisma.laundryRoom.findUnique({
@@ -273,7 +317,7 @@ class MemberService extends BaseService {
   }
 
   public async getLaundryQueueById(
-    id: string
+    id: string,
   ): Promise<LaundryQueue | void | null> {
     try {
       return await this.prisma.laundryQueue.findUnique({
@@ -293,7 +337,7 @@ class MemberService extends BaseService {
   }
 
   public async getLaundryItemByLaundryQueueID(
-    laundryQueueId: string
+    laundryQueueId: string,
   ): Promise<LaundryItem[] | void | null> {
     try {
       return await this.prisma.laundryItem.findMany({
@@ -309,7 +353,7 @@ class MemberService extends BaseService {
   }
 
   public async getMemberTrx(
-    options?: Prisma.PaymentFindManyArgs
+    options?: Prisma.PaymentFindManyArgs,
   ): Promise<Payment[] | void> {
     try {
       const data = await this.prisma.payment.findMany(options);
@@ -321,7 +365,7 @@ class MemberService extends BaseService {
   }
 
   public async getMemberInvoice(
-    invoice: string
+    invoice: string,
   ): Promise<Payment | void | null> {
     try {
       const result = await this.prisma.payment.findUnique({
