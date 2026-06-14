@@ -35,6 +35,7 @@ import MemberRouter from "./app/member/member.routes";
 import SettingRouter from "./app/setting/setting.routes";
 import ReportRouter from "./app/reports/report.routes";
 import ExpensesRouter from "./app/expenses/expenses.routes";
+import DashboardRouter from "./app/dashboard/dashboard.routes";
 import logger from "./configs/logger.config";
 
 class App {
@@ -144,6 +145,7 @@ class App {
     );
     this.server.use("/expenses", new ExpensesRouter(this.server).getRouter());
     this.server.use("/email", new EmailRouter(this.server).getRouter());
+    this.server.use("/dashboard", new DashboardRouter(this.server).getRouter());
   }
 
   errorMiddlewares() {
