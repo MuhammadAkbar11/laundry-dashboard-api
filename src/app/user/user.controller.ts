@@ -295,9 +295,7 @@ class UserController extends BaseController {
       const unreadCount =
         await this.notificationService.getUserUnreadCount(userId);
       const totalAll = await this.prisma.userNotification.count({
-        where: {
-          OR: [{ userId }, { isGlobal: true }],
-        },
+        where: { userId },
       });
 
       const data = paginated.getPagingData(
@@ -337,9 +335,11 @@ class UserController extends BaseController {
     next: NextFunction,
   ) {
     try {
+      const userId = req.user?.userId as string;
       const { notificationId } = req.params;
       await this.notificationService.markUserNotificationAsRead(
         notificationId,
+        userId,
       );
       res.status(200).json({
         message: "Notifikasi telah ditandai sebagai dibaca",

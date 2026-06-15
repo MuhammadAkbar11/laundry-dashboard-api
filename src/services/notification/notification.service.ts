@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseService } from "../../core";
 
@@ -22,6 +23,40 @@ class NotificationService extends BaseService {
   }
 
   /**
+   * Resolve the active notification type and IN_APP template, returning the
+   * rendered title/message plus the type id. Returns null when the type or
+   * template is missing or inactive so callers can silently skip.
+   */
+  private async resolveInAppTemplate(
+    typeCode: string,
+    variables: Record<string, string | number>
+  ): Promise<{
+    notificationTypeId: string;
+    title: string;
+    message: string;
+  } | null> {
+    const notificationType = await this.prisma.notificationType.findFirst({
+      where: { code: typeCode, isActive: true },
+    });
+    if (!notificationType) return null;
+
+    const template = await this.prisma.notificationTemplate.findFirst({
+      where: {
+        notificationTypeId: notificationType.id,
+        channel: "IN_APP",
+        isActive: true,
+      },
+    });
+    if (!template) return null;
+
+    return {
+      notificationTypeId: notificationType.id,
+      title: this.renderTemplate(template.titleTemplate, variables),
+      message: this.renderTemplate(template.messageTemplate, variables),
+    };
+  }
+
+  /**
    * Create a notification using the active template for the given type,
    * render title and message, and assign it to a member.
    */
@@ -31,28 +66,14 @@ class NotificationService extends BaseService {
     variables: Record<string, string | number>,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    const notificationType = await this.prisma.notificationType.findFirst({
-      where: { code: typeCode, isActive: true },
-    });
-    if (!notificationType) return;
-
-    const template = await this.prisma.notificationTemplate.findFirst({
-      where: {
-        notificationTypeId: notificationType.id,
-        channel: "IN_APP",
-        isActive: true,
-      },
-    });
-    if (!template) return;
-
-    const title = this.renderTemplate(template.titleTemplate, variables);
-    const message = this.renderTemplate(template.messageTemplate, variables);
+    const resolved = await this.resolveInAppTemplate(typeCode, variables);
+    if (!resolved) return;
 
     await this.prisma.notification.create({
       data: {
-        notificationTypeId: notificationType.id,
-        title,
-        message,
+        notificationTypeId: resolved.notificationTypeId,
+        title: resolved.title,
+        message: resolved.message,
         metadata: metadata ? JSON.stringify(metadata) : null,
         memberNotifications: {
           create: {
@@ -72,28 +93,14 @@ class NotificationService extends BaseService {
     variables: Record<string, string | number>,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    const notificationType = await this.prisma.notificationType.findFirst({
-      where: { code: typeCode, isActive: true },
-    });
-    if (!notificationType) return;
-
-    const template = await this.prisma.notificationTemplate.findFirst({
-      where: {
-        notificationTypeId: notificationType.id,
-        channel: "IN_APP",
-        isActive: true,
-      },
-    });
-    if (!template) return;
-
-    const title = this.renderTemplate(template.titleTemplate, variables);
-    const message = this.renderTemplate(template.messageTemplate, variables);
+    const resolved = await this.resolveInAppTemplate(typeCode, variables);
+    if (!resolved) return;
 
     await this.prisma.notification.create({
       data: {
-        notificationTypeId: notificationType.id,
-        title,
-        message,
+        notificationTypeId: resolved.notificationTypeId,
+        title: resolved.title,
+        message: resolved.message,
         metadata: metadata ? JSON.stringify(metadata) : null,
         userNotifications: {
           create: {
@@ -106,50 +113,64 @@ class NotificationService extends BaseService {
   }
 
   /**
-   * Create a global notification visible to all active users.
+   * Create a global notification visible to all active users. Each
+   * administrator gets their own recipient row so read state stays
+   * isolated per user.
    */
   async notifyAllUsers(
     typeCode: string,
     variables: Record<string, string | number>,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    const notificationType = await this.prisma.notificationType.findFirst({
-      where: { code: typeCode, isActive: true },
-    });
-    if (!notificationType) return;
+    const resolved = await this.resolveInAppTemplate(typeCode, variables);
+    if (!resolved) return;
 
-    const template = await this.prisma.notificationTemplate.findFirst({
-      where: {
-        notificationTypeId: notificationType.id,
-        channel: "IN_APP",
-        isActive: true,
-      },
-    });
-    if (!template) return;
-
-    const title = this.renderTemplate(template.titleTemplate, variables);
-    const message = this.renderTemplate(template.messageTemplate, variables);
-
-    await this.prisma.notification.create({
-      data: {
-        notificationTypeId: notificationType.id,
-        title,
-        message,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-        userNotifications: {
-          create: {
-            isGlobal: true,
-          },
+    await this.prisma.$transaction(async tx => {
+      const notification = await tx.notification.create({
+        data: {
+          notificationTypeId: resolved.notificationTypeId,
+          title: resolved.title,
+          message: resolved.message,
+          metadata: metadata ? JSON.stringify(metadata) : null,
         },
-      },
+      });
+
+      const activeUsers = await tx.user.findMany({
+        where: { status: "ACTIVE" },
+        select: { userId: true },
+      });
+
+      if (activeUsers.length === 0) return;
+
+      await tx.userNotification.createMany({
+        data: activeUsers.map(u => ({
+          notificationId: notification.id,
+          userId: u.userId,
+          isGlobal: true,
+        })),
+      });
     });
   }
 
   async markMemberNotificationAsRead(memberNotificationId: string): Promise<void> {
-    await this.prisma.memberNotification.update({
-      where: { id: memberNotificationId },
-      data: { isRead: true, readAt: new Date() },
-    });
+    try {
+      await this.prisma.memberNotification.update({
+        where: { id: memberNotificationId },
+        data: { isRead: true, readAt: new Date() },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2025"
+      ) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          "Notifikasi tidak ditemukan"
+        );
+      }
+      throw error;
+    }
   }
 
   async markAllMemberNotificationsAsRead(memberId: string): Promise<void> {
@@ -159,21 +180,37 @@ class NotificationService extends BaseService {
     });
   }
 
-  async markUserNotificationAsRead(userNotificationId: string): Promise<void> {
-    await this.prisma.userNotification.update({
-      where: { id: userNotificationId },
-      data: { isRead: true, readAt: new Date() },
-    });
+  /**
+   * Mark a single user notification as read. The userId guard prevents one
+   * administrator from mutating another administrator's recipient row.
+   */
+  async markUserNotificationAsRead(
+    userNotificationId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      await this.prisma.userNotification.update({
+        where: { id: userNotificationId, userId },
+        data: { isRead: true, readAt: new Date() },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2025"
+      ) {
+        throw this.error(
+          "NOT_FOUND",
+          404,
+          "Notifikasi tidak ditemukan"
+        );
+      }
+      throw error;
+    }
   }
 
   async markAllUserNotificationsAsRead(userId: string): Promise<void> {
     await this.prisma.userNotification.updateMany({
-      where: {
-        OR: [
-          { userId, isRead: false },
-          { isGlobal: true, isRead: false },
-        ],
-      },
+      where: { userId, isRead: false },
       data: { isRead: true, readAt: new Date() },
     });
   }
@@ -202,17 +239,17 @@ class NotificationService extends BaseService {
   }
 
   /**
-   * Fetch paginated notifications for a user. Includes both direct
-   * assignments and global notifications.
+   * Fetch paginated notifications for a user. With per-user recipient rows
+   * the simpler userId scope already includes both direct assignments and
+   * global notifications; the isGlobal flag is preserved on each row for
+   * the UI to render the GLOBAL badge.
    */
   async getUserNotifications(userId: string, options: {
     skip?: number;
     take?: number;
   } = {}): Promise<any[]> {
     return this.prisma.userNotification.findMany({
-      where: {
-        OR: [{ userId }, { isGlobal: true }],
-      },
+      where: { userId },
       skip: options.skip,
       take: options.take,
       orderBy: { createdAt: "desc" },
@@ -222,10 +259,7 @@ class NotificationService extends BaseService {
 
   async getUserUnreadCount(userId: string): Promise<number> {
     return this.prisma.userNotification.count({
-      where: {
-        OR: [{ userId }, { isGlobal: true }],
-        isRead: false,
-      },
+      where: { userId, isRead: false },
     });
   }
 }
