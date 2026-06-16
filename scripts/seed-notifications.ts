@@ -51,8 +51,8 @@ const shouldReset = process.argv.includes(RESET_FLAG);
     },
     {
       code: "LAUNDRY_ON_HOLD",
-      name: "Cucian Ditunda",
-      description: "Cucian ditunda/ditangguhkan",
+      name: "Cucian diproses",
+      description: "Cucian sedang dalam proses antrian",
     },
     {
       code: "LAUNDRY_WASHED",

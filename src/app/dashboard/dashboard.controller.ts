@@ -28,6 +28,60 @@ class DashboardController extends BaseController {
     }
   }
 
+  public async getRevenueAnalytics(
+    req: Request<{}, {}, {}, { period?: string }>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const data = await this.service.getRevenueAnalytics(
+        req.query.period || "7"
+      );
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Dashboard"),
+        data: parsingResult(data),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async getFinancialAnalytics(
+    req: Request<{}, {}, {}, { period?: string }>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const data = await this.service.getFinancialAnalytics(
+        req.query.period || "7"
+      );
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Dashboard"),
+        data: parsingResult(data),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
+  public async getRevenueByService(
+    req: Request<{}, {}, {}, { period?: string }>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const data = await this.service.getRevenueByService(
+        req.query.period || "7"
+      );
+      res.status(200).json({
+        message: this.getSuccessMessage("read", "Dashboard"),
+        data: parsingResult(data),
+      });
+    } catch (error: any) {
+      this.nextError(next, error);
+    }
+  }
+
   public async getMemberDashboard(
     req: Request,
     res: Response,

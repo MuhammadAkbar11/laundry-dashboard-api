@@ -52,6 +52,16 @@ interface AdminDashboardData {
     data: number[];
     period: string;
   };
+  financialAnalytics: {
+    labels: string[];
+    revenue: number[];
+    expenses: number[];
+    period: string;
+  };
+  revenueByService: {
+    labels: string[];
+    data: number[];
+  };
   recentOrders: RecentOrder[];
   recentMembers: RecentMember[];
 }
@@ -169,6 +179,8 @@ class DashboardService extends BaseService {
     // Revenue analytics by period (default 7 days)
     const selectedPeriod = period || "7";
     const revenueAnalytics = await this.getRevenueAnalytics(selectedPeriod);
+    const financialAnalytics = await this.getFinancialAnalytics(selectedPeriod);
+    const revenueByService = await this.getRevenueByService(selectedPeriod);
 
     // Recent orders
     const recentLaundryQueues = await this.prisma.laundryQueue.findMany({
@@ -216,6 +228,8 @@ class DashboardService extends BaseService {
         count: s._count.queuePaymentStatus,
       })),
       revenueAnalytics: revenueAnalytics,
+      financialAnalytics: financialAnalytics,
+      revenueByService: revenueByService,
       recentOrders,
       recentMembers,
     };
@@ -323,7 +337,7 @@ class DashboardService extends BaseService {
     };
   }
 
-  private async getRevenueAnalytics(period: string) {
+  async getRevenueAnalytics(period: string) {
     const todayEndStr = dateIndoWIB().endOf("day").format();
     let payments: Array<{ createdAt: string; totalPrice: bigint }> = [];
     let labels: string[] = [];
@@ -360,6 +374,94 @@ class DashboardService extends BaseService {
     }
 
     return { labels, data, period };
+  }
+
+  private getPeriodRange(period: string): {
+    startStr: string;
+    granularity: "day" | "month";
+  } {
+    if (period === "365") {
+      return {
+        startStr: dateIndoWIB().subtract(11, "month").startOf("month").format(),
+        granularity: "month",
+      };
+    }
+    if (period === "30") {
+      return {
+        startStr: dateIndoWIB().subtract(29, "day").startOf("day").format(),
+        granularity: "day",
+      };
+    }
+    return {
+      startStr: dateIndoWIB().subtract(6, "day").startOf("day").format(),
+      granularity: "day",
+    };
+  }
+
+  // Income (Payment) vs Expenses (CashFlow OUT) time-series, aligned on shared labels.
+  async getFinancialAnalytics(period: string) {
+    const todayEndStr = dateIndoWIB().endOf("day").format();
+    const { startStr, granularity } = this.getPeriodRange(period);
+
+    const payments = await this.prisma.payment.findMany({
+      where: { createdAt: { gte: startStr, lte: todayEndStr } },
+      select: { createdAt: true, totalPrice: true },
+    });
+
+    const cashflows = await this.prisma.cashFlow.findMany({
+      where: {
+        cashflowType: "OUT",
+        createdAt: { gte: new Date(startStr), lte: new Date(todayEndStr) },
+      },
+      select: { createdAt: true, total: true },
+    });
+
+    const revenueAgg = this.aggregateByPeriod(payments, granularity);
+    const expensesAgg = this.aggregateByPeriod(
+      cashflows.map((c) => ({ createdAt: c.createdAt, totalPrice: c.total })),
+      granularity,
+    );
+
+    const revenueMap = new Map(revenueAgg.map((d) => [d.label, d.value]));
+    const expensesMap = new Map(expensesAgg.map((d) => [d.label, d.value]));
+    const labels = Array.from(
+      new Set([...revenueMap.keys(), ...expensesMap.keys()]),
+    ).sort((a, b) => a.localeCompare(b));
+
+    const revenue = labels.map((l) => revenueMap.get(l) || 0);
+    const expenses = labels.map((l) => expensesMap.get(l) || 0);
+
+    return { labels, revenue, expenses, period };
+  }
+
+  // Revenue grouped by service type (HistoryService.name) within the period window.
+  async getRevenueByService(period: string) {
+    const todayEndStr = dateIndoWIB().endOf("day").format();
+    const { startStr } = this.getPeriodRange(period);
+
+    const items = await this.prisma.laundryItem.findMany({
+      where: {
+        laundryQueue: {
+          payment: { createdAt: { gte: startStr, lte: todayEndStr } },
+        },
+      },
+      select: {
+        totalPrice: true,
+        historyService: { select: { name: true } },
+      },
+    });
+
+    const map = new Map<string, number>();
+    for (const it of items) {
+      const name = it.historyService?.name || "Lainnya";
+      map.set(name, (map.get(name) || 0) + Number(it.totalPrice));
+    }
+
+    const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    return {
+      labels: sorted.map(([name]) => name),
+      data: sorted.map(([, value]) => value),
+    };
   }
 
   private aggregateByPeriod(

@@ -17,6 +17,21 @@ class DashboardRouter extends BaseRouter<DashboardController> {
   protected routes(): void {
     this.router.get("/admin", requiredUser, this.controller.getAdminDashboard);
     this.router.get(
+      "/admin/revenue-analytics",
+      requiredUser,
+      this.controller.getRevenueAnalytics
+    );
+    this.router.get(
+      "/admin/financial-analytics",
+      requiredUser,
+      this.controller.getFinancialAnalytics
+    );
+    this.router.get(
+      "/admin/revenue-by-service",
+      requiredUser,
+      this.controller.getRevenueByService
+    );
+    this.router.get(
       "/member",
       deserializeMember,
       requiredMember,
