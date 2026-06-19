@@ -36,6 +36,7 @@ import SettingRouter from "./app/setting/setting.routes";
 import ReportRouter from "./app/reports/report.routes";
 import ExpensesRouter from "./app/expenses/expenses.routes";
 import DashboardRouter from "./app/dashboard/dashboard.routes";
+import NotificationTemplateRouter from "./app/notificationTemplate/notificationTemplate.routes";
 import logger from "./configs/logger.config";
 
 class App {
@@ -146,6 +147,10 @@ class App {
     this.server.use("/expenses", new ExpensesRouter(this.server).getRouter());
     this.server.use("/email", new EmailRouter(this.server).getRouter());
     this.server.use("/dashboard", new DashboardRouter(this.server).getRouter());
+    this.server.use(
+      "/notification/template",
+      new NotificationTemplateRouter(this.server).getRouter(),
+    );
   }
 
   errorMiddlewares() {

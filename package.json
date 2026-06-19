@@ -31,6 +31,7 @@
     "dev": "ts-node-dev --respawn --exit-child --transpile-only ./src/server.ts",
     "build": "tsc",
     "seed": "dotenv -e .env.development ts-node ./src/database/seed/seed.ts",
+    "seed:notif": "dotenv -e .env.development ts-node ./src/database/seed/notification.seed.ts",
     "db:setup": "dotenv -e .env.development ts-node ./src/database/setup.ts",
     "db:migrate": "dotenv -e .env.development -- npx prisma migrate",
     "db:pull": "dotenv -e .env.development -- npx prisma db pull",

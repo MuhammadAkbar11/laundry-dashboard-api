@@ -1,5 +1,5 @@
 import express from "express";
-import { User } from "@prisma/client";
+import { Role, User } from "@prisma/client";
 import _ from "lodash";
 import JWT from "../helpers/jwt.helper";
 import AuthService from "../app/auth/auth.service";
@@ -224,4 +224,29 @@ export function requiredUser(
   }
 
   return next();
+}
+
+export function requireRole(...roles: Role[]) {
+  return (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    const user = req.user;
+    if (!user) {
+      return res.status(403).json({
+        name: "NOT_AUTH",
+        message: "Not authorized!",
+      });
+    }
+
+    if (!roles.includes(user.role)) {
+      return res.status(403).json({
+        name: "FORBIDDEN",
+        message: "Anda tidak memiliki izin untuk mengakses sumber daya ini.",
+      });
+    }
+
+    return next();
+  };
 }
