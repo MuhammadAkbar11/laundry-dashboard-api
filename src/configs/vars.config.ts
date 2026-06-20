@@ -248,4 +248,8 @@ export const DB_AUTOINC_COLOUMNS: {
       { name: "cashflow_invoice", prefix: "INV" },
     ],
   },
+  {
+    table: "tb_audit_logs",
+    columns: [{ name: "audit_log_id", prefix: "AUD" }],
+  },
 ];

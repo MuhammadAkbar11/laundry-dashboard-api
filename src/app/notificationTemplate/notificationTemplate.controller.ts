@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { BaseController } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import NotificationTemplateService from "./notificationTemplate.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import { parsingResult } from "../../utils/utils";
 import {
   PreviewNotificationTemplatePayload,
@@ -14,6 +15,7 @@ import {
 @BindAllMethods
 class NotificationTemplateController extends BaseController {
   private readonly service = new NotificationTemplateService();
+  private readonly auditLogService = new AuditLogService();
 
   constructor() {
     super();
@@ -111,9 +113,28 @@ class NotificationTemplateController extends BaseController {
     next: NextFunction
   ) {
     try {
+      const existing = await this.service.getById(req.params.templateId);
       const updated = await this.service.update(req.params.templateId, {
         titleTemplate: req.body.titleTemplate,
         messageTemplate: req.body.messageTemplate,
+      });
+      await this.auditLogService.create({
+        action: "UPDATE",
+        entityType: "NOTIFICATION_TEMPLATE",
+        entityId: req.params.templateId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          before: {
+            titleTemplate: existing?.titleTemplate,
+            messageTemplate: existing?.messageTemplate,
+          },
+          after: {
+            titleTemplate: updated?.titleTemplate,
+            messageTemplate: updated?.messageTemplate,
+          },
+        },
       });
       res.status(200).json({
         message: this.getSuccessMessage("update", "Template", req.params.templateId),
@@ -166,7 +187,27 @@ class NotificationTemplateController extends BaseController {
     next: NextFunction
   ) {
     try {
+      const existing = await this.service.getById(req.params.templateId);
       const updated = await this.service.resetToDefault(req.params.templateId);
+      await this.auditLogService.create({
+        action: "UPDATE",
+        entityType: "NOTIFICATION_TEMPLATE",
+        entityId: req.params.templateId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          resetToDefault: true,
+          before: {
+            titleTemplate: existing?.titleTemplate,
+            messageTemplate: existing?.messageTemplate,
+          },
+          after: {
+            titleTemplate: updated?.titleTemplate,
+            messageTemplate: updated?.messageTemplate,
+          },
+        },
+      });
       res.status(200).json({
         message: this.getSuccessMessage("update", "Template", req.params.templateId),
         template: parsingResult(updated),

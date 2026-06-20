@@ -10,6 +10,7 @@ import {
   ReadByIDExpensesPayload,
 } from "./expenses.schema";
 import ExpensesService from "./expenses.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import Pagination from "../../helpers/pagination.helper";
 import { parsingResult } from "../../utils/utils";
 import { sanitizeMultilineText } from "../../utils/sanitizer.utils";
@@ -17,6 +18,7 @@ import { sanitizeMultilineText } from "../../utils/sanitizer.utils";
 @BindAllMethods
 class ExpensesController extends BaseController {
   private readonly service = new ExpensesService();
+  private readonly auditLogService = new AuditLogService();
 
   constructor() {
     super();
@@ -148,6 +150,20 @@ class ExpensesController extends BaseController {
         expensesInvoice: "",
       });
 
+      await this.auditLogService.create({
+        action: "CREATE",
+        entityType: "EXPENSE",
+        entityId: result?.expenses.expensesId as string,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          expensesInvoice: result?.expenses.expensesInvoice,
+          description: result?.expenses.description,
+          total: Number(result?.expenses.total),
+        },
+      });
+
       res.status(201).json({
         message: this.getSuccessMessage("create", "Pengeluaran"),
         expenses: parsingResult(result?.expenses),
@@ -192,11 +208,30 @@ class ExpensesController extends BaseController {
         total: total || existing.total,
       });
 
+      await this.auditLogService.create({
+        action: "UPDATE",
+        entityType: "EXPENSE",
+        entityId: expensesIdParam,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          before: {
+            description: existing.description,
+            total: Number(existing.total),
+          },
+          after: {
+            description: updated?.description,
+            total: Number(updated?.total),
+          },
+        },
+      });
+
       res.status(200).json({
         message: this.getSuccessMessage(
           "update",
           "Pengeluaran",
-          expensesIdParam,
+          expensesIdParam
         ),
         expenses: parsingResult(updated),
       });
@@ -229,11 +264,25 @@ class ExpensesController extends BaseController {
 
       const deleted = await this.service.delete(expensesIdParam);
 
+      await this.auditLogService.create({
+        action: "DELETE",
+        entityType: "EXPENSE",
+        entityId: expensesIdParam,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          expensesInvoice: existing.expensesInvoice,
+          description: existing.description,
+          total: Number(existing.total),
+        },
+      });
+
       res.status(200).json({
         message: this.getSuccessMessage(
           "delete",
           "Pengeluaran",
-          expensesIdParam,
+          expensesIdParam
         ),
         expenses: parsingResult(deleted),
       });

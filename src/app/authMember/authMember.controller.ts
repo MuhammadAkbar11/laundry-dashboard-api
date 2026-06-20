@@ -5,8 +5,10 @@ import { DEFAULT_USER_AVATAR, MODE } from "../../configs/vars.config";
 import { BaseController } from "../../core";
 import { userAgentDeviceType } from "../../utils/utils";
 import { sanitizeText } from "../../utils/sanitizer.utils";
+import { hashResetToken } from "../../utils/auth.utils";
 import _, { omit } from "lodash";
 import AuthMemberService from "./authMember.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import {
   ForgotMemberPasswordPayload,
   ResetMemberPasswordPayload,
@@ -19,6 +21,7 @@ import {
 @BindAllMethods
 class AuthMemberController extends BaseController {
   private readonly service = new AuthMemberService();
+  private readonly auditLogService = new AuditLogService();
   constructor() {
     super();
   }
@@ -44,6 +47,19 @@ class AuthMemberController extends BaseController {
       }
 
       await this.service.sendVerificationEmail(user.memberId);
+
+      await this.auditLogService.create({
+        action: "CREATE",
+        entityType: "MEMBER",
+        entityId: user.memberId,
+        actorId: user.memberId,
+        actorName: user.username,
+        actorRole: "MEMBER",
+        metadata: {
+          kind: "SIGNUP",
+          email: user.email,
+        },
+      });
 
       return res.status(201).json({
         message:
@@ -123,6 +139,20 @@ class AuthMemberController extends BaseController {
           void req.resetAuthRateLimit();
         }
 
+        await this.auditLogService.create({
+          action: "LOGIN",
+          entityType: "MEMBER",
+          entityId: memberId,
+          actorId: memberId,
+          actorName: member.username,
+          actorRole: "MEMBER",
+          metadata: {
+            sessionId,
+            ipAddress,
+            deviceType,
+          },
+        });
+
         return res.status(200).json({
           message: `Berhasi login! Selamat Datang Kembali ${member.username}`,
           user: { ...member, session: sessionId },
@@ -200,6 +230,18 @@ class AuthMemberController extends BaseController {
         },
       });
 
+      await this.auditLogService.create({
+        action: "LOGOUT",
+        entityType: "MEMBER",
+        entityId: memberId,
+        actorId: member.memberId,
+        actorName: member.username,
+        actorRole: "MEMBER",
+        metadata: {
+          sessionId: session.memberSessionId,
+        },
+      });
+
       return res.json({
         message: "Logout Berhasil! Sampai Jumpa Lagi",
       });
@@ -231,6 +273,27 @@ class AuthMemberController extends BaseController {
   ) {
     try {
       await this.service.resetPassword(req.body.token, req.body.password);
+      const tokenHash = hashResetToken(req.body.token);
+      const resetRow = await this.prisma.passwordResetToken.findUnique({
+        where: { tokenHash },
+      });
+      const affectedMemberId = resetRow?.memberId ?? "UNKNOWN";
+      const affectedMember = resetRow?.memberId
+        ? await this.prisma.member.findUnique({
+            where: { memberId: resetRow.memberId },
+          })
+        : null;
+      await this.auditLogService.create({
+        action: "PASSWORD_RESET",
+        entityType: "MEMBER",
+        entityId: affectedMemberId,
+        actorId: affectedMemberId,
+        actorName: affectedMember?.username ?? null,
+        actorRole: "MEMBER",
+        metadata: {
+          kind: "SELF_SERVICE_RESET",
+        },
+      });
       return res.status(200).json({
         message:
           "Kata sandi berhasil direset. Silakan login dengan kata sandi baru.",

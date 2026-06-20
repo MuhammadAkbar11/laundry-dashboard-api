@@ -4,6 +4,7 @@ import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseController } from "../../core";
 import Pagination from "../../helpers/pagination.helper";
 import LaundryServiceService from "./laundryService.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import {
   CreateLaundryServicePayload,
   DeleteLaundryServicePayload,
@@ -20,6 +21,7 @@ type LaundryServiceSorting =
 @BindAllMethods
 class LaundryServiceController extends BaseController {
   private readonly service = new LaundryServiceService();
+  private readonly auditLogService = new AuditLogService();
 
   constructor() {
     super();
@@ -178,6 +180,23 @@ class LaundryServiceController extends BaseController {
         price: BigInt(price),
       });
 
+      if (newService) {
+        await this.auditLogService.create({
+          action: "CREATE",
+          entityType: "SETTINGS",
+          entityId: newService.serviceId,
+          actorId: req.user?.userId,
+          actorName: req.user?.name,
+          actorRole: req.user?.role,
+          metadata: {
+            kind: "LAUNDRY_SERVICE",
+            name: newService.name,
+            unit: newService.unit,
+            price: Number(newService.price),
+          },
+        });
+      }
+
       res.status(201).json({
         message: this.getSuccessMessage("create", "Layanan"),
         service: parsingResult(newService),
@@ -222,6 +241,30 @@ class LaundryServiceController extends BaseController {
         price: BigInt(price as number) || existingService.price,
       });
 
+      await this.auditLogService.create({
+        action: "UPDATE",
+        entityType: "SETTINGS",
+        entityId: serviceIdParam,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          kind: "LAUNDRY_SERVICE",
+          before: {
+            name: existingService.name,
+            description: existingService.description,
+            unit: existingService.unit,
+            price: Number(existingService.price),
+          },
+          after: {
+            name: updatedService?.name,
+            description: updatedService?.description,
+            unit: updatedService?.unit,
+            price: Number(updatedService?.price),
+          },
+        },
+      });
+
       res.status(200).json({
         message: this.getSuccessMessage("update", "Layanan", serviceIdParam),
         service: parsingResult(updatedService),
@@ -254,6 +297,21 @@ class LaundryServiceController extends BaseController {
       }
 
       const deletedService = await this.service.delete(serviceIdParam);
+
+      await this.auditLogService.create({
+        action: "DELETE",
+        entityType: "SETTINGS",
+        entityId: serviceIdParam,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          kind: "LAUNDRY_SERVICE",
+          name: service.name,
+          unit: service.unit,
+          price: Number(service.price),
+        },
+      });
 
       res.status(200).json({
         message: this.getSuccessMessage("delete", "Layanan", serviceIdParam),

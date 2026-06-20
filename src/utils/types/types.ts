@@ -17,7 +17,8 @@ export type IncTablesNameTypes =
   | "tb_history_services"
   | "tb_payments"
   | "tb_expenses"
-  | "tb_cashflow";
+  | "tb_cashflow"
+  | "tb_audit_logs";
 
 export type IncTablesFieldTypes =
   | "user_id"
@@ -34,4 +35,5 @@ export type IncTablesFieldTypes =
   | "expenses_id"
   | "expenses_invoice"
   | "cashflow_id"
-  | "cashflow_invoice";
+  | "cashflow_invoice"
+  | "audit_log_id";

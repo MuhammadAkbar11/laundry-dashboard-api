@@ -9,6 +9,7 @@ import {
   ReadPaymentPayload,
 } from "./payment.schema";
 import PaymentService from "./payment.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import { isNumericQuery, parsingResult, searchArray } from "../../utils/utils";
 import { SortingTypes } from "../../utils/types/types";
 import { PAYMENT_METHODS } from "../../configs/vars.config";
@@ -20,6 +21,7 @@ type PaymentSorting =
 @BindAllMethods
 class PaymentController extends BaseController {
   private readonly service = new PaymentService();
+  private readonly auditLogService = new AuditLogService();
 
   constructor() {
     super();
@@ -220,6 +222,21 @@ class PaymentController extends BaseController {
         userId: req?.user?.userId as string,
       });
 
+      await this.auditLogService.create({
+        action: "CREATE",
+        entityType: "PAYMENT",
+        entityId: (newPayment as any)?.payment?.paymentId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          invoice: (newPayment as any)?.payment?.invoice,
+          laundryQueueId,
+          paidAmount,
+          paymentMethod,
+        },
+      });
+
       res.status(201).json({
         message: this.getSuccessMessage("create", "Pembayaran"),
         data: parsingResult(newPayment),
@@ -258,6 +275,27 @@ class PaymentController extends BaseController {
         const data = await this.service.accPayment({
           payment: existingPayment,
           userId: req?.user?.userId as string,
+        });
+        await this.auditLogService.create({
+          action: "UPDATE",
+          entityType: "PAYMENT",
+          entityId: paymentId,
+          actorId: req.user?.userId,
+          actorName: req.user?.name,
+          actorRole: req.user?.role,
+          metadata: {
+            invoice: existingPayment.invoice,
+            laundryQueueId: existingPayment.laundryQueueId,
+            type: "ACCEPT",
+            before: {
+              totalPrice: Number(existingPayment.totalPrice),
+              paid: Number(existingPayment.paid),
+            },
+            after: {
+              totalPrice: Number((data as any)?.payment?.totalPrice),
+              paid: Number((data as any)?.payment?.paid),
+            },
+          },
         });
         return res.status(201).json({
           message: this.getSuccessMessage("update", "Pembayaran"),

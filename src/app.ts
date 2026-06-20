@@ -37,6 +37,7 @@ import ReportRouter from "./app/reports/report.routes";
 import ExpensesRouter from "./app/expenses/expenses.routes";
 import DashboardRouter from "./app/dashboard/dashboard.routes";
 import NotificationTemplateRouter from "./app/notificationTemplate/notificationTemplate.routes";
+import AuditLogRouter from "./app/auditLog/auditLog.routes";
 import logger from "./configs/logger.config";
 
 class App {
@@ -150,6 +151,10 @@ class App {
     this.server.use(
       "/notification/template",
       new NotificationTemplateRouter(this.server).getRouter(),
+    );
+    this.server.use(
+      "/audit-log",
+      new AuditLogRouter(this.server).getRouter(),
     );
   }
 

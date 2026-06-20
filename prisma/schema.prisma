@@ -358,6 +358,25 @@ model UserNotification {
   @@map("tb_user_notifications")
 }
 
+model AuditLog {
+  auditLogId String        @id @map("audit_log_id") @db.VarChar(13)
+  action     AuditAction
+  entityType AuditEntityType
+  entityId   String        @map("entity_id") @db.VarChar(36)
+  actorId    String?       @map("actor_id") @db.VarChar(11)
+  actorName  String?       @map("actor_name") @db.VarChar(128)
+  actorRole  String?       @map("actor_role") @db.VarChar(20)
+  metadata   String?       @db.Text
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  @@index([action], map: "audit_action_idx")
+  @@index([entityType], map: "audit_entity_type_idx")
+  @@index([entityId], map: "audit_entity_id_idx")
+  @@index([actorId], map: "audit_actor_id_idx")
+  @@index([createdAt], map: "audit_created_at_idx")
+  @@map("tb_audit_logs")
+}
+
 /// @@Gen.model(hide: true)
 model AutoIncrement {
   id     Int     @id @default(autoincrement())
@@ -423,4 +442,24 @@ enum Status {
 enum DeliveryType {
   DELIVERED @map("delivered")
   PICKUP    @map("pickup")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  PASSWORD_RESET
+  STATUS_CHANGE
+}
+
+enum AuditEntityType {
+  USER
+  MEMBER
+  ORDER
+  PAYMENT
+  EXPENSE
+  NOTIFICATION_TEMPLATE
+  SETTINGS
 }

@@ -18,6 +18,7 @@ import MemberService from "./member.service";
 import FileHelper from "../../helpers/file.helper";
 import Pagination from "../../helpers/pagination.helper";
 import NotificationService from "../../services/notification/notification.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import {
   MemberOrderPayload,
   PostPaymentPayload,
@@ -50,6 +51,7 @@ import { ReadLaundryRoomPayload } from "../laundryRoom/laundryRoom.schema";
 class MemberController extends BaseController {
   private readonly service = new MemberService();
   private readonly notificationService = new NotificationService();
+  private readonly auditLogService = new AuditLogService();
   constructor() {
     super();
   }
@@ -230,6 +232,27 @@ class MemberController extends BaseController {
         return { member: updatedMember, customer: updatedCustomer };
       });
 
+      await this.auditLogService.create({
+        action: "UPDATE",
+        entityType: "MEMBER",
+        entityId: memberId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          before: {
+            username: existing.username,
+            email: existing.email,
+            status: existing.status,
+          },
+          after: {
+            username: result.member.username,
+            email: result.member.email,
+            status: result.member.status,
+          },
+        },
+      });
+
       res.status(200).json({
         message: this.getSuccessMessage("update", "Member"),
         member: parsingResult(result.member),
@@ -265,6 +288,18 @@ class MemberController extends BaseController {
       const hashed = await bcrypt.hash(tempPassword, 10);
 
       await this.service.update(memberId, { password: hashed });
+
+      await this.auditLogService.create({
+        action: "PASSWORD_RESET",
+        entityType: "MEMBER",
+        entityId: memberId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          email: existing.email,
+        },
+      });
 
       res.status(200).json({
         message: "Password berhasil direset",

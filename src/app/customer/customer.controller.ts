@@ -24,7 +24,7 @@ class CustomerController extends BaseController {
 
   private sorting(
     orderBy: string,
-    sortBy: Prisma.SortOrder
+    sortBy: Prisma.SortOrder,
   ): Prisma.CustomerOrderByWithRelationAndSearchRelevanceInput {
     let sortingOptions: Prisma.CustomerOrderByWithRelationAndSearchRelevanceInput =
       {
@@ -51,7 +51,7 @@ class CustomerController extends BaseController {
   public async get(
     req: Request<{}, {}, {}, ReadCustomerPayload["query"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { _search, _page = 1, _limit = 10, _orderBy, _sortBy } = req.query;
@@ -66,7 +66,7 @@ class CustomerController extends BaseController {
       const { limit, skip } = paginated.getPagination();
       const sorting = this.sorting(
         _orderBy as string,
-        _sortBy as Prisma.SortOrder
+        _sortBy as Prisma.SortOrder,
       );
 
       if (_search) {
@@ -102,7 +102,7 @@ class CustomerController extends BaseController {
 
       const data = paginated.getPagingData(
         totalCustomers,
-        parsingResult(customers)
+        parsingResult(customers),
       );
 
       res.status(200).json({
@@ -117,10 +117,9 @@ class CustomerController extends BaseController {
   public async getId(
     req: Request<ReadOneCustomerPayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const customerIdParam = req.params.customerId as string;
-    console.log("TEST getId()");
 
     try {
       const customer = await this.service.getById(customerIdParam, {
@@ -131,7 +130,11 @@ class CustomerController extends BaseController {
         throw this.error(
           "NOT_FOUND",
           404,
-          this.getErrorMessage("readByIdNotFound", "Pelanggan", customerIdParam)
+          this.getErrorMessage(
+            "readByIdNotFound",
+            "Pelanggan",
+            customerIdParam,
+          ),
         );
       }
 
@@ -139,7 +142,7 @@ class CustomerController extends BaseController {
         message: this.getSuccessMessage(
           "readById",
           "Pelanggan",
-          customerIdParam
+          customerIdParam,
         ),
         customer: parsingResult(customer),
       });
@@ -151,7 +154,7 @@ class CustomerController extends BaseController {
   public async post(
     req: Request<{}, {}, CreateCustomerPayload["body"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { name, address, phone, customerLevelId, point } = req.body;
@@ -180,7 +183,7 @@ class CustomerController extends BaseController {
       UpdateCustomerPayload["body"]
     >,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const customerIdParam = req.params.customerId as string;
 
@@ -193,7 +196,11 @@ class CustomerController extends BaseController {
         throw this.error(
           "NOT_FOUND",
           404,
-          this.getErrorMessage("readByIdNotFound", "Pelanggan", customerIdParam)
+          this.getErrorMessage(
+            "readByIdNotFound",
+            "Pelanggan",
+            customerIdParam,
+          ),
         );
       }
 
@@ -217,7 +224,7 @@ class CustomerController extends BaseController {
   public async delete(
     req: Request<DeleteCustomerPayload["params"]>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     const customerIdParam = req.params.customerId as string;
 
@@ -230,7 +237,11 @@ class CustomerController extends BaseController {
         throw this.error(
           "NOT_FOUND",
           404,
-          this.getErrorMessage("readByIdNotFound", "Pelanggan", customerIdParam)
+          this.getErrorMessage(
+            "readByIdNotFound",
+            "Pelanggan",
+            customerIdParam,
+          ),
         );
       }
 

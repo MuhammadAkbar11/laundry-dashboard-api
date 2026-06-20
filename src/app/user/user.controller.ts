@@ -12,6 +12,7 @@ import {
 } from "./user.schema";
 import UserService from "./user.service";
 import NotificationService from "../../services/notification/notification.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import { BaseController } from "../../core";
 import { SortingTypes } from "../../utils/types/types";
 import Pagination from "../../helpers/pagination.helper";
@@ -33,6 +34,7 @@ type UserSorting =
 class UserController extends BaseController {
   private service = new UserService();
   private notificationService = new NotificationService();
+  private auditLogService = new AuditLogService();
   constructor() {
     super();
   }
@@ -143,6 +145,20 @@ class UserController extends BaseController {
         name: sanitizeText(req.body.name),
         status: "ACTIVE",
       });
+      await this.auditLogService.create({
+        action: "CREATE",
+        entityType: "USER",
+        entityId: (user as any).userId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          email: (user as any).email,
+          name: (user as any).name,
+          role: (user as any).role,
+          status: (user as any).status,
+        },
+      });
       return res.status(201).json({
         message: `${this.getSuccessMessage(
           "create",
@@ -199,6 +215,29 @@ class UserController extends BaseController {
         role: (role as Role) || existingUser.role,
         email: email || existingUser.email,
         avatar: avatar,
+      });
+
+      await this.auditLogService.create({
+        action: "UPDATE",
+        entityType: "USER",
+        entityId: userIdParam,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          before: {
+            name: existingUser.name,
+            role: existingUser.role,
+            email: existingUser.email,
+            avatar: existingUser.avatar,
+          },
+          after: {
+            name: updatedUser?.name,
+            role: updatedUser?.role,
+            email: updatedUser?.email,
+            avatar: updatedUser?.avatar,
+          },
+        },
       });
 
       res.status(200).json({
@@ -259,6 +298,21 @@ class UserController extends BaseController {
       }
 
       const deletedService = await this.service.delete(userId);
+
+      await this.auditLogService.create({
+        action: "DELETE",
+        entityType: "USER",
+        entityId: userId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          email: service?.email,
+          name: service?.name,
+          role: service?.role,
+          status: service?.status,
+        },
+      });
 
       res.status(200).json({
         message: this.getSuccessMessage("delete", "User", userId),

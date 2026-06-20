@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { BaseController } from "../../core";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import SettingService from "./setting.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import { parsingResult } from "../../utils/utils";
 import {
   UpdateSettingPayload,
@@ -11,6 +12,7 @@ import {
 @BindAllMethods
 class SettingController extends BaseController {
   private readonly service = new SettingService();
+  private readonly auditLogService = new AuditLogService();
 
   constructor() {
     super();
@@ -50,6 +52,21 @@ class SettingController extends BaseController {
       const { settings } = req.body;
 
       const updated = await this.service.bulkUpdate(settings);
+
+      await this.auditLogService.create({
+        action: "UPDATE",
+        entityType: "SETTINGS",
+        entityId: "ALL",
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          updated: (updated as any[])?.map((setting) => ({
+            name: setting.name,
+            value: setting.value,
+          })),
+        },
+      });
 
       res.status(200).json({
         message: this.getSuccessMessage("update", "Pengaturan"),

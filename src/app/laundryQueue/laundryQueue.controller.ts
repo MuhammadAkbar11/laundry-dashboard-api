@@ -13,6 +13,7 @@ import {
   UpdateLaundryQueueStatusPayload,
 } from "./laundryQueue.schema";
 import CustomerService from "../customer/customer.service";
+import AuditLogService from "../auditLog/auditLog.service";
 import { isNumericQuery, parsingResult } from "../../utils/utils";
 import { SortingTypes } from "../../utils/types/types";
 import LaundryItemService from "../laundryItem/laundryItem.service";
@@ -22,6 +23,7 @@ class LaundryQueueController extends BaseController {
   private readonly service = new LaundryQueueService();
   private readonly customerService = new CustomerService();
   private readonly laundryItemService = new LaundryItemService();
+  private readonly auditLogService = new AuditLogService();
 
   constructor() {
     super();
@@ -209,6 +211,20 @@ class LaundryQueueController extends BaseController {
         note: note,
       });
 
+      await this.auditLogService.create({
+        action: "CREATE",
+        entityType: "ORDER",
+        entityId: (newQueue as any)?.laundryQueue?.laundryQueueId,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          customerId: customerIdParam,
+          status: (newQueue as any)?.laundryQueue?.status,
+          queuePaymentStatus: (newQueue as any)?.laundryQueue?.queuePaymentStatus,
+        },
+      });
+
       res.status(201).json({
         message: this.getSuccessMessage("create", "Antrian"),
         laundryQueue: parsingResult(newQueue),
@@ -337,6 +353,19 @@ class LaundryQueueController extends BaseController {
         req.body.status
       );
 
+      await this.auditLogService.create({
+        action: "STATUS_CHANGE",
+        entityType: "ORDER",
+        entityId: laundryQueueIdParam,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          before: { status: existingLaundryQueue.status },
+          after: { status: req.body.status },
+        },
+      });
+
       res.status(201).json({
         message: this.getSuccessMessage(
           "update",
@@ -375,6 +404,19 @@ class LaundryQueueController extends BaseController {
       const deletedLaundryQueue = await this.service.delete(
         laundryQueueIdParam
       );
+
+      await this.auditLogService.create({
+        action: "DELETE",
+        entityType: "ORDER",
+        entityId: laundryQueueIdParam,
+        actorId: req.user?.userId,
+        actorName: req.user?.name,
+        actorRole: req.user?.role,
+        metadata: {
+          customerId: laundryQueue.customerId,
+          status: laundryQueue.status,
+        },
+      });
 
       res.status(200).json({
         message: this.getSuccessMessage(
