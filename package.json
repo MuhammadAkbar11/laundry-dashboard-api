@@ -32,6 +32,8 @@
     "build": "tsc",
     "seed": "dotenv -e .env.development ts-node ./src/database/seed/seed.ts",
     "seed:notif": "dotenv -e .env.development ts-node ./src/database/seed/notification.seed.ts",
+    "seed:business": "dotenv -e .env.development ts-node ./src/database/seed/business.seed.ts",
+    "test": "jest",
     "db:setup": "dotenv -e .env.development ts-node ./src/database/setup.ts",
     "db:migrate": "dotenv -e .env.development -- npx prisma migrate",
     "db:pull": "dotenv -e .env.development -- npx prisma db pull",

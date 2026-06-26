@@ -9,6 +9,7 @@ async function GenerateAutoIncField({
   field,
   length = 6,
   customPrefix = "",
+  enableLogs = true,
 }: IGenerateAutoIncFieldHelper) {
   const prisma = prismaTx ? prismaTx : mainPrisma;
   try {
@@ -49,16 +50,18 @@ async function GenerateAutoIncField({
           value: { increment: 1 },
         },
       });
-      logger.info(
-        `[HELPER] successfully generated auto increment for column ${field} in table ${tableName} = ${result}, Length = ${length} `
-      );
+      if (enableLogs) {
+        logger.info(
+          `[HELPER] successfully generated auto increment for column ${field} in table ${tableName} = ${result}, Length = ${length} `,
+        );
+      }
       return result;
     }
 
     throw new BaseError(
       "ERR_AUTOINCREMENT",
       500,
-      `failed to generate auto-increment for column ${field} with table ${tableName}. because column ${field} or table ${tableName} is not found in the auto-increments table.`
+      `failed to generate auto-increment for column ${field} with table ${tableName}. because column ${field} or table ${tableName} is not found in the auto-increments table.`,
     );
   } catch (error: any) {
     logger.error(error);

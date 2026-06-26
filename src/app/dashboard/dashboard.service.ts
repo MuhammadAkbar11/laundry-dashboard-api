@@ -2,6 +2,7 @@ import { Prisma, Payment } from "@prisma/client";
 import { BindAllMethods } from "../../utils/decorators.utils";
 import { BaseService } from "../../core";
 import { dateIndoWIB } from "../../configs/date.config";
+import { aggregateByPeriod } from "../../utils/analytics.utils";
 
 
 type DashboardPeriod = "today" | "this_month" | "last_7_days" | "last_30_days";
@@ -422,14 +423,19 @@ class DashboardService extends BaseService {
       granularity,
     );
 
-    const revenueMap = new Map(revenueAgg.map((d) => [d.label, d.value]));
-    const expensesMap = new Map(expensesAgg.map((d) => [d.label, d.value]));
-    const labels = Array.from(
+    // Key by sortKey (YYYY-MM / YYYY-MM-DD) so the union and sort are
+    // chronological, then swap in the display label for the response.
+    const revenueMap = new Map(revenueAgg.map((d) => [d.sortKey, d]));
+    const expensesMap = new Map(expensesAgg.map((d) => [d.sortKey, d]));
+    const sortedKeys = Array.from(
       new Set([...revenueMap.keys(), ...expensesMap.keys()]),
     ).sort((a, b) => a.localeCompare(b));
 
-    const revenue = labels.map((l) => revenueMap.get(l) || 0);
-    const expenses = labels.map((l) => expensesMap.get(l) || 0);
+    const labels = sortedKeys.map(
+      (k) => (revenueMap.get(k) ?? expensesMap.get(k))!.label,
+    );
+    const revenue = sortedKeys.map((k) => revenueMap.get(k)?.value || 0);
+    const expenses = sortedKeys.map((k) => expensesMap.get(k)?.value || 0);
 
     return { labels, revenue, expenses, period };
   }
@@ -467,18 +473,8 @@ class DashboardService extends BaseService {
   private aggregateByPeriod(
     payments: Array<{ createdAt: string | Date; totalPrice: bigint | number }>,
     granularity: "day" | "month",
-  ): Array<{ label: string; value: number }> {
-    const map = new Map<string, number>();
-    for (const p of payments) {
-	const d = new Date(p.createdAt);
-	const key = granularity === "month"
-	  ? dateIndoWIB(d).format("MMM YYYY")
-          : dateIndoWIB(d).format("YYYY-MM-DD");
-      map.set(key, (map.get(key) || 0) + Number(p.totalPrice));
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, value]) => ({ label, value }));
+  ): Array<{ sortKey: string; label: string; value: number }> {
+    return aggregateByPeriod(payments, granularity);
   }
 }
 

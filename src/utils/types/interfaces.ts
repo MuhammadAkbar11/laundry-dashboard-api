@@ -43,4 +43,5 @@ export interface IGenerateAutoIncFieldHelper {
   field: IncTablesFieldTypes;
   length?: number;
   customPrefix?: string;
+  enableLogs?: boolean;
 }
